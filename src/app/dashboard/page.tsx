@@ -8,6 +8,7 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import { CalendarConnect } from "@/components/CalendarConnect";
 import { ListingImport } from "@/components/ListingImport";
 import { ExportPanel } from "@/components/ExportPanel";
+import { ContactsPanel } from "@/components/ContactsPanel";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserOrg, getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
@@ -17,7 +18,11 @@ export default async function DashboardPage() {
   const demoUser = await getDemoUserFromCookies();
 
   if (demoUser) {
-    const { leads, listings, tasks } = getDemoStore();
+    const { leads, listings, tasks, contacts } = getDemoStore();
+    const contactsWithLeads = contacts.map((c) => ({
+      ...c,
+      leads: leads.filter((l) => l.contact_id === c.id).map(({ id, name, stage }) => ({ id, name, stage })),
+    }));
     return (
       <>
         <Header email={demoUser.email} demoMode />
@@ -35,6 +40,7 @@ export default async function DashboardPage() {
           <LeadsTable leads={leads} demoMode />
           <ListingsGrid listings={listings} />
           <KanbanBoard tasks={tasks} demoMode />
+          <ContactsPanel initialContacts={contactsWithLeads} />
         </main>
         <footer className="footer">
           <p>© 2026 Real‑Estate CRM — Demo</p>
@@ -76,6 +82,12 @@ export default async function DashboardPage() {
     supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
   ]);
 
+  const { data: contactsFresh } = await supabase
+    .from("contacts")
+    .select("*, leads(id, name, stage)")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false });
+
   return (
     <>
       <Header email={user.email} />
@@ -93,6 +105,7 @@ export default async function DashboardPage() {
         <LeadsTable leads={leadsFresh.data ?? []} />
         <ListingsGrid listings={listingsFresh.data ?? []} />
         <KanbanBoard tasks={tasksFresh.data ?? []} />
+        <ContactsPanel initialContacts={contactsFresh ?? []} />
       </main>
       <footer className="footer">
         <p>© 2026 Real‑Estate CRM</p>

@@ -3,9 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { getDemoStore } from "@/lib/demo/store";
-import { leadsToCSV, listingsToCSV, tasksToCSV } from "@/lib/export/csv";
+import { contactsToCSV, leadsToCSV, listingsToCSV, tasksToCSV } from "@/lib/export/csv";
 
-type ExportType = "leads" | "listings" | "tasks" | "all";
+type ExportType = "leads" | "listings" | "tasks" | "contacts" | "all";
 type ExportFormat = "csv" | "json";
 
 export async function GET(request: Request) {
@@ -13,11 +13,11 @@ export async function GET(request: Request) {
   const type = (searchParams.get("type") ?? "all") as ExportType;
   const format = (searchParams.get("format") ?? "csv") as ExportFormat;
 
-  let leads, listings, tasks;
+  let leads, listings, tasks, contacts;
 
   const demoUser = await getDemoUserFromCookies();
   if (demoUser) {
-    ({ leads, listings, tasks } = getDemoStore());
+    ({ leads, listings, tasks, contacts } = getDemoStore());
   } else {
     const supabase = await createClient();
     const {
@@ -33,10 +33,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "No organization" }, { status: 400 });
     }
 
-    [{ data: leads }, { data: listings }, { data: tasks }] = await Promise.all([
+    [{ data: leads }, { data: listings }, { data: tasks }, { data: contacts }] = await Promise.all([
       supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
       supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+      supabase.from("contacts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     ]);
   }
 
@@ -47,7 +48,8 @@ export async function GET(request: Request) {
     if (type === "leads") payload = leads;
     else if (type === "listings") payload = listings;
     else if (type === "tasks") payload = tasks;
-    else payload = { leads, listings, tasks, exported_at: new Date().toISOString() };
+    else if (type === "contacts") payload = contacts;
+    else payload = { leads, listings, tasks, contacts, exported_at: new Date().toISOString() };
 
     const filename = `crm-${type}-${now}.json`;
     return new NextResponse(JSON.stringify(payload, null, 2), {
@@ -71,10 +73,13 @@ export async function GET(request: Request) {
   } else if (type === "tasks") {
     csv = tasksToCSV(tasks ?? []);
     filename = `tasks-${now}.csv`;
+  } else if (type === "contacts") {
+    csv = contactsToCSV(contacts ?? []);
+    filename = `contacts-${now}.csv`;
   } else {
-    // all: one CSV per section separated by blank lines
     csv =
       "=== LEADS ===\r\n" + leadsToCSV(leads ?? []) +
+      "\r\n\r\n=== CONTACTS ===\r\n" + contactsToCSV(contacts ?? []) +
       "\r\n\r\n=== LISTINGS ===\r\n" + listingsToCSV(listings ?? []) +
       "\r\n\r\n=== TASKS ===\r\n" + tasksToCSV(tasks ?? []);
     filename = `crm-export-${now}.csv`;

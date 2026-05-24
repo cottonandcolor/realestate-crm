@@ -27,6 +27,24 @@ export interface OrgMember {
   created_at: string;
 }
 
+export interface Contact {
+  id: string;
+  org_id: string;
+  first_name: string;
+  last_name: string | null;
+  email: string | null;
+  phone: string | null;
+  company: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactWithLeads extends Contact {
+  leads?: Lead[];
+}
+
 export interface Lead {
   id: string;
   org_id: string;
@@ -36,9 +54,14 @@ export interface Lead {
   stage: LeadStage;
   source: string | null;
   tags: string[];
+  contact_id: string | null;
   assigned_agent_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface LeadWithContact extends Lead {
+  contact?: Contact | null;
 }
 
 export interface Listing {

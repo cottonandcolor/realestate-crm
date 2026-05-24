@@ -1,4 +1,15 @@
-import type { Lead, Listing, Task } from "@/lib/types/database";
+import type { Contact, Lead, Listing, Task } from "@/lib/types/database";
+
+export function contactsToCSV(contacts: Contact[]): string {
+  const headers = [
+    "First Name", "Last Name", "Email", "Phone", "Company", "Notes", "Created At",
+  ];
+  const rows = contacts.map((c) => [
+    c.first_name, c.last_name ?? "", c.email ?? "",
+    c.phone ?? "", c.company ?? "", c.notes ?? "", c.created_at,
+  ]);
+  return toCsvString(headers, rows);
+}
 
 function escapeCsv(val: unknown): string {
   if (val === null || val === undefined) return "";

@@ -1,4 +1,4 @@
-import type { Lead, Listing, Task } from "@/lib/types/database";
+import type { Contact, Lead, Listing, Task } from "@/lib/types/database";
 import { DEMO_USER } from "./constants";
 
 const orgId = "00000000-0000-4000-8000-000000000010";
@@ -7,6 +7,56 @@ function ts(offsetDays = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
   return d.toISOString();
+}
+
+export const SEED_CONTACT_IDS = {
+  alice: "c0000000-0000-4000-8000-000000000001",
+  bob:   "c0000000-0000-4000-8000-000000000002",
+  carol: "c0000000-0000-4000-8000-000000000003",
+};
+
+export function createSeedContacts(): Contact[] {
+  return [
+    {
+      id: SEED_CONTACT_IDS.alice,
+      org_id: orgId,
+      first_name: "Alice",
+      last_name: "Johnson",
+      email: "alice@example.com",
+      phone: "555-1234",
+      company: null,
+      notes: "Interested in downtown condos.",
+      created_by: DEMO_USER.id,
+      created_at: ts(-10),
+      updated_at: ts(-2),
+    },
+    {
+      id: SEED_CONTACT_IDS.bob,
+      org_id: orgId,
+      first_name: "Bob",
+      last_name: "Smith",
+      email: "bob@example.com",
+      phone: "555-5678",
+      company: "Smith & Co.",
+      notes: "Referred by Alice.",
+      created_by: DEMO_USER.id,
+      created_at: ts(-10),
+      updated_at: ts(-1),
+    },
+    {
+      id: SEED_CONTACT_IDS.carol,
+      org_id: orgId,
+      first_name: "Carol",
+      last_name: "Lee",
+      email: "carol@example.com",
+      phone: "555-9012",
+      company: "Lee Investments LLC",
+      notes: "Multi-property investor.",
+      created_by: DEMO_USER.id,
+      created_at: ts(-15),
+      updated_at: ts(-3),
+    },
+  ];
 }
 
 export function createSeedLeads(): Lead[] {
@@ -20,6 +70,7 @@ export function createSeedLeads(): Lead[] {
       stage: "new",
       source: "website",
       tags: ["Buyer"],
+      contact_id: SEED_CONTACT_IDS.alice,
       assigned_agent_id: DEMO_USER.id,
       created_at: ts(-2),
       updated_at: ts(-2),
@@ -33,6 +84,7 @@ export function createSeedLeads(): Lead[] {
       stage: "contacted",
       source: "referral",
       tags: ["Seller"],
+      contact_id: SEED_CONTACT_IDS.bob,
       assigned_agent_id: DEMO_USER.id,
       created_at: ts(-5),
       updated_at: ts(-1),
@@ -46,6 +98,7 @@ export function createSeedLeads(): Lead[] {
       stage: "qualified",
       source: "open house",
       tags: ["Investor"],
+      contact_id: SEED_CONTACT_IDS.carol,
       assigned_agent_id: null,
       created_at: ts(-10),
       updated_at: ts(-3),
