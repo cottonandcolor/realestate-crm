@@ -7,6 +7,7 @@ import { ListingsGrid } from "@/components/ListingsGrid";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { CalendarConnect } from "@/components/CalendarConnect";
 import { ListingImport } from "@/components/ListingImport";
+import { ExportPanel } from "@/components/ExportPanel";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserOrg, getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
@@ -29,6 +30,7 @@ export default async function DashboardPage() {
             <CalendarConnect connected={false} />
           </Suspense>
           <ListingImport demoMode />
+          <ExportPanel />
           <DashboardCards leads={leads} listings={listings} tasks={tasks} />
           <LeadsTable leads={leads} demoMode />
           <ListingsGrid listings={listings} />
@@ -82,6 +84,7 @@ export default async function DashboardPage() {
           <CalendarConnect connected={!!googleToken} />
         </Suspense>
         <ListingImport />
+        <ExportPanel />
         <DashboardCards
           leads={leadsFresh.data ?? []}
           listings={listingsFresh.data ?? []}

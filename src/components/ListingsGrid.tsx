@@ -3,7 +3,12 @@ import type { Listing } from "@/lib/types/database";
 export function ListingsGrid({ listings }: { listings: Listing[] }) {
   return (
     <section className="listings" id="listings">
-      <h2>Listings</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <h2 style={{ margin: 0 }}>Listings</h2>
+        <a href="/api/export?type=listings&format=csv" className="btn">
+          ⬇ Export CSV
+        </a>
+      </div>
       <div className="grid">
         {listings.map((l) => (
           <div key={l.id} className="listing-card glass">

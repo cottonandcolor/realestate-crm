@@ -81,7 +81,12 @@ export function KanbanBoard({
 
   return (
     <section className="tasks" id="tasks">
-      <h2>Tasks</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+        <h2 style={{ margin: 0 }}>Tasks</h2>
+        <a href="/api/export?type=tasks&format=csv" className="btn">
+          ⬇ Export CSV
+        </a>
+      </div>
       <div className="kanban">
         {COLUMNS.map(({ status, label }) => (
           <div

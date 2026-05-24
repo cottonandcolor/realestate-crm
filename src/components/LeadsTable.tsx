@@ -46,12 +46,22 @@ export function LeadsTable({ leads, demoMode = false }: { leads: Lead[]; demoMod
     });
   }
 
+  function exportLeads() {
+    window.location.href = `/api/export?type=leads&format=csv`;
+  }
+
   return (
     <section className="leads" id="leads">
-      <h2>Leads</h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <h2 style={{ margin: 0 }}>Leads</h2>
+        <button type="button" className="btn" onClick={exportLeads} title="Export leads as CSV">
+          ⬇ Export CSV
+        </button>
+      </div>
       <input
         type="text"
         className="search"
+        style={{ marginBottom: "1rem" }}
         placeholder="Search leads..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
