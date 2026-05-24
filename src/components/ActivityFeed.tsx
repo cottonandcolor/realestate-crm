@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import type { Activity, ActivityType } from "@/lib/types/database";
+import { MicButton } from "./MicButton";
 
 const TYPE_META: Record<ActivityType, { icon: string; label: string; color: string }> = {
   note:    { icon: "📝", label: "Note",    color: "#7c6af7" },
@@ -67,16 +68,21 @@ function AddActivityForm({
         ))}
       </div>
 
-      <textarea
-        ref={textRef}
-        className="input"
-        rows={2}
-        placeholder={`Add a ${TYPE_META[type].label.toLowerCase()}…`}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
-        style={{ maxWidth: "none", width: "100%", resize: "vertical" }}
-      />
+      <div style={{ position: "relative" }}>
+        <textarea
+          ref={textRef}
+          className="input"
+          rows={2}
+          placeholder={`Add a ${TYPE_META[type].label.toLowerCase()}… or tap 🎤`}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
+          style={{ maxWidth: "none", width: "100%", resize: "vertical", paddingRight: "2.75rem" }}
+        />
+        <div style={{ position: "absolute", right: "0.5rem", bottom: "0.5rem" }}>
+          <MicButton size="sm" onTranscript={(t) => setText((prev) => (prev ? prev + " " + t : t).trim())} />
+        </div>
+      </div>
 
       <button
         type="button"

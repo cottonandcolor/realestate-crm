@@ -107,6 +107,27 @@ export function deleteDemoContact(contactId: string) {
   );
 }
 
+export function addDemoTask(
+  data: { title: string; status?: TaskStatus; due_at?: string | null }
+): Task {
+  const now = new Date().toISOString();
+  const task: Task = {
+    id: crypto.randomUUID(),
+    org_id: orgId,
+    title: data.title,
+    status: data.status ?? "todo",
+    due_at: data.due_at ?? null,
+    lead_id: null,
+    listing_id: null,
+    assigned_agent_id: null,
+    google_event_id: null,
+    created_at: now,
+    updated_at: now,
+  };
+  tasks = [task, ...tasks];
+  return task;
+}
+
 export function linkDemoLeadToContact(leadId: string, contactId: string): boolean {
   const lead = leads.find((l) => l.id === leadId);
   if (!lead) return false;

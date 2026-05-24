@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { Contact, Lead } from "@/lib/types/database";
 import { ActivityFeed } from "./ActivityFeed";
+import { MicButton } from "./MicButton";
+import { parseContactFromSpeech } from "@/lib/voice/parseContact";
 
 type ContactWithLeads = Contact & { leads?: Pick<Lead, "id" | "name" | "stage">[] };
 
@@ -142,13 +144,18 @@ function ContactForm({
         </div>
         <div style={{ gridColumn: "1 / -1" }}>
           <label style={{ fontSize: "0.82rem" }}>Notes</label>
-          <textarea
-            className="input"
-            rows={2}
-            style={{ maxWidth: "none", margin: "0.2rem 0 0", width: "100%", resize: "vertical" }}
-            value={(form.notes as string) ?? ""}
-            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-          />
+          <div style={{ position: "relative" }}>
+            <textarea
+              className="input"
+              rows={2}
+              style={{ maxWidth: "none", margin: "0.2rem 0 0", width: "100%", resize: "vertical", paddingRight: "2.75rem" }}
+              value={(form.notes as string) ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+            />
+            <div style={{ position: "absolute", right: "0.5rem", bottom: "0.5rem" }}>
+              <MicButton size="sm" onTranscript={(t) => setForm((f) => ({ ...f, notes: ((f.notes ?? "") + " " + t).trim() }))} />
+            </div>
+          </div>
         </div>
       </div>
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
@@ -176,6 +183,7 @@ export function ContactsPanel({
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ContactWithLeads | null>(null);
   const [status, setStatus] = useState("");
+  const [voicePrefill, setVoicePrefill] = useState<Partial<Contact> | null>(null);
 
   const filtered = contacts.filter((c) => {
     const q = search.toLowerCase();
@@ -236,9 +244,17 @@ export function ContactsPanel({
     <section id="contacts" style={{ marginBottom: "3rem" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
         <h2 style={{ margin: 0 }}>Contacts</h2>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <a href="/api/export?type=contacts&format=csv" className="btn">⬇ Export CSV</a>
-          <button type="button" className="btn btn-primary" onClick={() => { setAdding(true); setEditing(null); }}>
+          <MicButton
+            onTranscript={(text) => {
+              const parsed = parseContactFromSpeech(text);
+              setEditing(null);
+              setAdding(true);
+              setVoicePrefill(parsed);
+            }}
+          />
+          <button type="button" className="btn btn-primary" onClick={() => { setAdding(true); setEditing(null); setVoicePrefill(null); }}>
             + Add Contact
           </button>
         </div>
@@ -254,7 +270,11 @@ export function ContactsPanel({
       />
 
       {adding && (
-        <ContactForm onSave={handleAdd} onCancel={() => setAdding(false)} />
+        <ContactForm
+          initial={voicePrefill ?? undefined}
+          onSave={handleAdd}
+          onCancel={() => { setAdding(false); setVoicePrefill(null); }}
+        />
       )}
       {editing && (
         <ContactForm initial={editing} onSave={handleEdit} onCancel={() => setEditing(null)} />

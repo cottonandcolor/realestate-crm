@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Activity, ActivityType, Contact, Lead } from "@/lib/types/database";
+import { MicButton } from "./MicButton";
 
 const TYPE_META: Record<ActivityType, { icon: string; label: string; color: string }> = {
   note:    { icon: "📝", label: "Note",    color: "#7c6af7" },
@@ -198,17 +199,22 @@ function QuickAddForm({
         ))}
       </div>
 
-      {/* Text */}
-      <textarea
-        ref={textRef}
-        className="input"
-        rows={2}
-        placeholder={`Log a ${TYPE_META[type].label.toLowerCase()}… (Cmd+Enter to save)`}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
-        style={{ maxWidth: "none", width: "100%", resize: "vertical", margin: 0 }}
-      />
+      {/* Text + mic */}
+      <div style={{ position: "relative" }}>
+        <textarea
+          ref={textRef}
+          className="input"
+          rows={2}
+          placeholder={`Log a ${TYPE_META[type].label.toLowerCase()}… (Cmd+Enter or tap 🎤)`}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit(); }}
+          style={{ maxWidth: "none", width: "100%", resize: "vertical", margin: 0, paddingRight: "2.75rem" }}
+        />
+        <div style={{ position: "absolute", right: "0.5rem", bottom: "0.5rem" }}>
+          <MicButton size="sm" onTranscript={(t) => setText((prev) => (prev ? prev + " " + t : t).trim())} />
+        </div>
+      </div>
 
       {/* Link row */}
       <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>

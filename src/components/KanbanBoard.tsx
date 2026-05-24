@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Task, TaskStatus } from "@/lib/types/database";
+import { MicButton } from "./MicButton";
+import { parseTaskFromSpeech } from "@/lib/voice/parseTask";
 
 const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: "todo", label: "To‑Do" },
@@ -19,6 +21,10 @@ export function KanbanBoard({
 }) {
   const [tasks, setTasks] = useState(initial);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState("");
+  const [newDue, setNewDue] = useState("");
+  const [addingStatus, setAddingStatus] = useState<TaskStatus | null>(null);
+  const [saving, setSaving] = useState(false);
 
   function tasksFor(status: TaskStatus) {
     return tasks.filter((t) => t.status === status);
@@ -38,6 +44,25 @@ export function KanbanBoard({
     }
     const supabase = createClient();
     await supabase.from("tasks").update({ status, updated_at: new Date().toISOString() }).eq("id", taskId);
+  }
+
+  async function addTask(status: TaskStatus) {
+    const title = newTitle.trim();
+    if (!title) return;
+    setSaving(true);
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, status, due_at: newDue || null }),
+    });
+    if (res.ok) {
+      const task = await res.json();
+      setTasks((prev) => [task, ...prev]);
+      setNewTitle("");
+      setNewDue("");
+      setAddingStatus(null);
+    }
+    setSaving(false);
   }
 
   async function scheduleShowing(task: Task) {
@@ -117,6 +142,58 @@ export function KanbanBoard({
                 </li>
               ))}
             </ul>
+
+            {/* Quick-add row */}
+            {addingStatus === status ? (
+              <div style={{ marginTop: "0.5rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                <div style={{ position: "relative" }}>
+                  <input
+                    autoFocus
+                    className="input"
+                    placeholder="Task title…"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addTask(status);
+                      if (e.key === "Escape") { setAddingStatus(null); setNewTitle(""); setNewDue(""); }
+                    }}
+                    style={{ maxWidth: "none", width: "100%", margin: 0, fontSize: "0.85rem", paddingRight: "2.5rem" }}
+                  />
+                  <div style={{ position: "absolute", right: "0.4rem", top: "50%", transform: "translateY(-50%)" }}>
+                    <MicButton size="sm" onTranscript={(t) => {
+                      const parsed = parseTaskFromSpeech(t);
+                      setNewTitle(parsed.title);
+                      if (parsed.due_at) setNewDue(parsed.due_at.slice(0, 10));
+                    }} />
+                  </div>
+                </div>
+                <input
+                  type="date"
+                  className="input"
+                  value={newDue}
+                  onChange={(e) => setNewDue(e.target.value)}
+                  style={{ maxWidth: "none", margin: 0, fontSize: "0.82rem" }}
+                />
+                <div style={{ display: "flex", gap: "0.35rem" }}>
+                  <button type="button" className="btn btn-primary" style={{ flex: 1, fontSize: "0.82rem" }} onClick={() => addTask(status)} disabled={saving || !newTitle.trim()}>
+                    {saving ? "…" : "Add"}
+                  </button>
+                  <button type="button" className="btn" style={{ fontSize: "0.82rem" }} onClick={() => { setAddingStatus(null); setNewTitle(""); setNewDue(""); }}>
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAddingStatus(status)}
+                style={{ marginTop: "0.5rem", width: "100%", background: "none", border: "1px dashed var(--color-border)", borderRadius: "var(--radius-sm)", padding: "0.45rem", cursor: "pointer", color: "var(--color-text-muted)", fontSize: "0.82rem", transition: "border-color 0.15s, color 0.15s" }}
+                onMouseOver={(e) => { e.currentTarget.style.borderColor = "var(--indigo-400)"; e.currentTarget.style.color = "var(--indigo-400)"; }}
+                onMouseOut={(e) => { e.currentTarget.style.borderColor = "var(--color-border)"; e.currentTarget.style.color = "var(--color-text-muted)"; }}
+              >
+                + Add task
+              </button>
+            )}
           </div>
         ))}
       </div>

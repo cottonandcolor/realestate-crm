@@ -531,6 +531,12 @@ select.input { cursor: pointer; }
   margin-top: 2rem;
 }
 
+/* ─── Voice mic pulse ────────────────────────────────────────────────────── */
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(251, 113, 133, 0); }
+}
+
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
