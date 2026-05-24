@@ -1,0 +1,77 @@
+/* Global design tokens */
+:root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-primary-light: #20b2aa;
+  --color-primary-dark: #1a2b4c;
+  --color-bg-light: #f0f4f8;
+  --color-bg-dark: #0d1117;
+  --color-card-bg: rgba(255, 255, 255, 0.25);
+  --color-card-bg-dark: rgba(20, 30, 40, 0.55);
+  --blur-glass: 12px;
+  --radius: 12px;
+  --transition: 0.3s ease;
+}
+
+[data-theme="dark"] {
+  --color-primary: var(--color-primary-light);
+  --color-bg: var(--color-bg-dark);
+  --color-card-bg: var(--color-card-bg-dark);
+  --color-text: #e0e6ed;
+}
+[data-theme="light"] {
+  --color-primary: var(--color-primary-dark);
+  --color-bg: var(--color-bg-light);
+  --color-card-bg: var(--color-card-bg);
+  --color-text: #1a202c;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: var(--transition);
+}
+
+.header .hero {
+  min-height: 260px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 4rem;
+}
+.header .hero h1 {
+  font-size: 2.5rem;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.theme-toggle {
+  background: transparent;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: #fff;
+}
+.glass {
+  background: var(--color-card-bg);
+  backdrop-filter: blur(var(--blur-glass));
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.main { padding: 2rem 4rem; }
+section { margin-bottom: 3rem; }
+section h2 { margin-bottom: 1rem; font-weight: 600; color: var(--color-primary); }
+.cards { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.card { flex: 1 1 200px; text-align: center; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .8rem 1rem; text-align: left; }
+.search { margin-bottom: 1rem; padding: .6rem .8rem; border-radius: 6px; border: none; max-width: 300px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
+.kanban { display: flex; gap: 1rem; }
+.task-list { list-style: none; min-height: 80px; }
+.task-list li { background: var(--color-card-bg); margin: .4rem 0; padding: .6rem .8rem; border-radius: var(--radius); cursor: grab; }
+.footer { text-align: center; padding: 1rem; font-size: .9rem; opacity: .7; }

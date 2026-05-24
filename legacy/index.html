@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real‑Estate CRM Sample</title>
+    <meta name="description" content="A premium‑looking sample CRM dashboard for real‑estate agents, featuring leads, listings, tasks and dark‑mode.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+    <header class="header">
+        <div class="hero" style="background-image: url('assets/images/crm_hero_banner_1779580483312.png');">
+            <h1>Real‑Estate CRM</h1>
+            <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">🌙</button>
+        </div>
+    </header>
+    <main class="main">
+        <section class="dashboard" id="dashboard">
+            <h2>Dashboard</h2>
+            <div class="cards">
+                <div class="card glass">
+                    <h3>New Leads</h3>
+                    <p id="leadCount">12</p>
+                </div>
+                <div class="card glass">
+                    <h3>Active Listings</h3>
+                    <p id="listingCount">5</p>
+                </div>
+                <div class="card glass">
+                    <h3>Upcoming Showings</h3>
+                    <p id="showingCount">3</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="leads" id="leads">
+            <h2>Leads</h2>
+            <input type="text" id="leadSearch" placeholder="Search leads..." class="search" />
+            <table class="glass">
+                <thead>
+                    <tr>
+                        <th data-key="name">Name</th>
+                        <th data-key="email">Email</th>
+                        <th data-key="phone">Phone</th>
+                        <th>Tags</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="leadTableBody">
+                </tbody>
+            </table>
+        </section>
+
+        <section class="listings" id="listings">
+            <h2>Listings</h2>
+            <div class="grid"></div>
+        </section>
+
+        <section class="tasks" id="tasks">
+            <h2>Tasks</h2>
+            <div class="kanban">
+                <div class="column" data-status="todo">
+                    <h3>To‑Do</h3>
+                    <ul class="task-list" id="todoList"></ul>
+                </div>
+                <div class="column" data-status="inprogress">
+                    <h3>In‑Progress</h3>
+                    <ul class="task-list" id="inprogressList"></ul>
+                </div>
+                <div class="column" data-status="done">
+                    <h3>Done</h3>
+                    <ul class="task-list" id="doneList"></ul>
+                </div>
+            </div>
+        </section>
+    </main>
+    <footer class="footer">
+        <p>© 2026 Sample Real‑Estate CRM – Demo Only</p>
+    </footer>
+    <script src="assets/js/script.js"></script>
+</body>
+</html>
