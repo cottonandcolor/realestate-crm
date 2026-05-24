@@ -10,10 +10,11 @@ import { ContactsPanel } from "./ContactsPanel";
 import { CalendarConnect } from "./CalendarConnect";
 import { ListingImport } from "./ListingImport";
 import { ExportPanel } from "./ExportPanel";
+import { ActivitiesTab } from "./ActivitiesTab";
 
 type ContactWithLeads = Contact & { leads?: Pick<Lead, "id" | "name" | "stage">[] };
 
-type TabId = "overview" | "leads" | "contacts" | "listings" | "tasks";
+type TabId = "overview" | "leads" | "contacts" | "listings" | "tasks" | "activity";
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "overview",  label: "Overview",  icon: "📊" },
@@ -21,6 +22,7 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "contacts",  label: "Contacts",  icon: "📇" },
   { id: "listings",  label: "Listings",  icon: "🏠" },
   { id: "tasks",     label: "Tasks",     icon: "✓"  },
+  { id: "activity",  label: "Activity",  icon: "📋" },
 ];
 
 function TabBar({
@@ -148,6 +150,7 @@ export function DashboardTabs({
     contacts: contacts.length,
     listings: listings.length,
     tasks:    tasks.filter((t) => t.status !== "done").length,
+    // activity count is fetched client-side; omit from badge here
   };
 
   return (
@@ -185,7 +188,7 @@ export function DashboardTabs({
 
             {/* Quick-jump shortcuts */}
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              {(["leads","contacts","listings","tasks"] as TabId[]).map((id) => {
+              {(["leads","contacts","listings","tasks","activity"] as TabId[]).map((id) => {
                 const tab = TABS.find((t) => t.id === id)!;
                 return (
                   <button
@@ -224,6 +227,11 @@ export function DashboardTabs({
         {/* ── Tasks ────────────────────────────────── */}
         {active === "tasks" && (
           <KanbanBoard tasks={tasks} demoMode={demoMode} />
+        )}
+
+        {/* ── Activity ─────────────────────────────── */}
+        {active === "activity" && (
+          <ActivitiesTab leads={leads} contacts={contacts} />
         )}
       </main>
     </>
