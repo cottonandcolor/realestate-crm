@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Lead } from "@/lib/types/database";
 
-export function LeadsTable({ leads }: { leads: Lead[] }) {
+export function LeadsTable({ leads, demoMode = false }: { leads: Lead[]; demoMode?: boolean }) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<keyof Lead>("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -35,6 +35,10 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
 
   async function notifyAssign(lead: Lead) {
     if (!lead.assigned_agent_id) return;
+    if (demoMode) {
+      alert(`Demo: would email agent about lead "${lead.name}"`);
+      return;
+    }
     await fetch("/api/email/lead-assigned", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

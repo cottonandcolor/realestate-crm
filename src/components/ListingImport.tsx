@@ -6,7 +6,7 @@ const SAMPLE_CSV = `title,address,price,status,external_id
 Modern Condo,123 Main St Austin TX,$2400 / month,active,condo-001
 Spacious Townhouse,456 Oak Ave,$3200 / month,active,town-002`;
 
-export function ListingImport() {
+export function ListingImport({ demoMode = false }: { demoMode?: boolean }) {
   const [csv, setCsv] = useState(SAMPLE_CSV);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,8 @@ export function ListingImport() {
     setLoading(true);
     setStatus(null);
     try {
-      const res = await fetch("/api/listings/import", {
+      const url = demoMode ? "/api/dev/listings/import" : "/api/listings/import";
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: "csv", data: csv }),

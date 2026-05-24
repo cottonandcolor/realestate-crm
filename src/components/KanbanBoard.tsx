@@ -10,7 +10,13 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
   { status: "done", label: "Done" },
 ];
 
-export function KanbanBoard({ tasks: initial }: { tasks: Task[] }) {
+export function KanbanBoard({
+  tasks: initial,
+  demoMode = false,
+}: {
+  tasks: Task[];
+  demoMode?: boolean;
+}) {
   const [tasks, setTasks] = useState(initial);
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
@@ -22,6 +28,14 @@ export function KanbanBoard({ tasks: initial }: { tasks: Task[] }) {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status } : t))
     );
+    if (demoMode) {
+      await fetch("/api/dev/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, status }),
+      });
+      return;
+    }
     const supabase = createClient();
     await supabase.from("tasks").update({ status, updated_at: new Date().toISOString() }).eq("id", taskId);
   }

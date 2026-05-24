@@ -5,12 +5,22 @@ import { ThemeToggle } from "./ThemeProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
-export function Header({ email }: { email?: string | null }) {
+export function Header({
+  email,
+  demoMode = false,
+}: {
+  email?: string | null;
+  demoMode?: boolean;
+}) {
   const router = useRouter();
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    if (demoMode) {
+      await fetch("/api/dev/logout", { method: "POST" });
+    } else {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    }
     router.push("/login");
     router.refresh();
   }

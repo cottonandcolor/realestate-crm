@@ -13,6 +13,36 @@ export default function LoginPage() {
   );
 }
 
+function DemoLoginButton() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function loginDemo() {
+    setLoading(true);
+    const res = await fetch("/api/dev/login", { method: "POST" });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error ?? "Demo login failed");
+      setLoading(false);
+      return;
+    }
+    router.push("/dashboard");
+    router.refresh();
+  }
+
+  return (
+    <button
+      type="button"
+      className="btn btn-primary"
+      style={{ width: "100%", background: "var(--color-primary-light)" }}
+      onClick={loginDemo}
+      disabled={loading}
+    >
+      {loading ? "Loading demo…" : "Continue as Demo Agent"}
+    </button>
+  );
+}
+
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -62,6 +92,14 @@ function LoginForm() {
         <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
           {loading ? "Signing in…" : "Log in"}
         </button>
+        {process.env.NEXT_PUBLIC_DEV_DEMO_MODE === "true" && (
+          <>
+            <p style={{ margin: "1rem 0", textAlign: "center", fontSize: "0.85rem", opacity: 0.7 }}>
+              or
+            </p>
+            <DemoLoginButton />
+          </>
+        )}
         <p style={{ marginTop: "1rem", fontSize: "0.9rem" }}>
           No account? <Link href="/signup">Sign up</Link>
         </p>

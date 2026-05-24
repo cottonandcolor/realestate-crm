@@ -9,8 +9,38 @@ import { CalendarConnect } from "@/components/CalendarConnect";
 import { ListingImport } from "@/components/ListingImport";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserOrg, getUserOrgId } from "@/lib/org";
+import { getDemoUserFromCookies } from "@/lib/demo/session";
+import { getDemoStore } from "@/lib/demo/store";
 
 export default async function DashboardPage() {
+  const demoUser = await getDemoUserFromCookies();
+
+  if (demoUser) {
+    const { leads, listings, tasks } = getDemoStore();
+    return (
+      <>
+        <Header email={demoUser.email} demoMode />
+        <main className="main">
+          <div className="glass" style={{ marginBottom: "1rem", padding: "0.75rem 1rem" }}>
+            <strong>Demo mode</strong> — logged in as {demoUser.fullName} ({demoUser.email}).
+            Data is in-memory only.
+          </div>
+          <Suspense fallback={null}>
+            <CalendarConnect connected={false} />
+          </Suspense>
+          <ListingImport demoMode />
+          <DashboardCards leads={leads} listings={listings} tasks={tasks} />
+          <LeadsTable leads={leads} demoMode />
+          <ListingsGrid listings={listings} />
+          <KanbanBoard tasks={tasks} demoMode />
+        </main>
+        <footer className="footer">
+          <p>© 2026 Real‑Estate CRM — Demo</p>
+        </footer>
+      </>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
