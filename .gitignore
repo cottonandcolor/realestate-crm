@@ -18,6 +18,9 @@
 # production
 /build
 
+# local node toolchain (scripts/setup uses system node when available)
+.tools/
+
 # misc
 .DS_Store
 *.pem

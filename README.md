@@ -8,7 +8,14 @@ Team CRM for real estate agents: leads, listings, Kanban tasks, Google Calendar 
 
 ### 1. Install dependencies
 
-Requires [Node.js](https://nodejs.org/) 18+.
+Requires [Node.js](https://nodejs.org/) 20+ (or use the setup script).
+
+```bash
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+Or manually:
 
 ```bash
 npm install
