@@ -1,14 +1,6 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Header } from "@/components/Header";
-import { DashboardCards } from "@/components/DashboardCards";
-import { LeadsTable } from "@/components/LeadsTable";
-import { ListingsGrid } from "@/components/ListingsGrid";
-import { KanbanBoard } from "@/components/KanbanBoard";
-import { CalendarConnect } from "@/components/CalendarConnect";
-import { ListingImport } from "@/components/ListingImport";
-import { ExportPanel } from "@/components/ExportPanel";
-import { ContactsPanel } from "@/components/ContactsPanel";
+import { DashboardTabs } from "@/components/DashboardTabs";
 import { createClient } from "@/lib/supabase/server";
 import { ensureUserOrg, getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
@@ -21,27 +13,27 @@ export default async function DashboardPage() {
     const { leads, listings, tasks, contacts } = getDemoStore();
     const contactsWithLeads = contacts.map((c) => ({
       ...c,
-      leads: leads.filter((l) => l.contact_id === c.id).map(({ id, name, stage }) => ({ id, name, stage })),
+      leads: leads
+        .filter((l) => l.contact_id === c.id)
+        .map(({ id, name, stage }) => ({ id, name, stage })),
     }));
+
     return (
       <>
         <Header email={demoUser.email} demoMode />
-        <main className="main">
-          <div className="glass" style={{ marginBottom: "1rem", padding: "0.75rem 1rem" }}>
-            <strong>Demo mode</strong> — logged in as {demoUser.fullName} ({demoUser.email}).
-            Data is in-memory only.
-          </div>
-          <Suspense fallback={null}>
-            <CalendarConnect connected={false} />
-          </Suspense>
-          <ListingImport demoMode />
-          <ExportPanel />
-          <DashboardCards leads={leads} listings={listings} tasks={tasks} />
-          <LeadsTable leads={leads} demoMode />
-          <ListingsGrid listings={listings} />
-          <KanbanBoard tasks={tasks} demoMode />
-          <ContactsPanel initialContacts={contactsWithLeads} />
-        </main>
+        <DashboardTabs
+          leads={leads}
+          listings={listings}
+          tasks={tasks}
+          contacts={contactsWithLeads}
+          calendarConnected={false}
+          demoMode
+          demoBanner={
+            <>
+              <strong>Demo mode</strong> — data is in-memory only and resets on server restart.
+            </>
+          }
+        />
         <footer className="footer">
           <p>© 2026 Real‑Estate CRM — Demo</p>
         </footer>
@@ -49,64 +41,46 @@ export default async function DashboardPage() {
     );
   }
 
+  // ── Supabase path ──────────────────────────────────────────────────────────
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   let orgId = await getUserOrgId(supabase);
-  if (!orgId) {
-    orgId = await ensureUserOrg(supabase, "My Real Estate Team");
-  }
+  if (!orgId) orgId = await ensureUserOrg(supabase, "My Real Estate Team");
 
-  const [{ data: leads }, { data: listings }, { data: tasks }, { data: googleToken }] =
-    await Promise.all([
-      supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-      supabase.from("google_tokens").select("user_id").eq("user_id", user.id).maybeSingle(),
-    ]);
-
-  const hasData =
-    (leads?.length ?? 0) > 0 || (listings?.length ?? 0) > 0 || (tasks?.length ?? 0) > 0;
-
-  if (!hasData) {
-    await seedDemoData(supabase, orgId, user.id);
-  }
-
-  const [leadsFresh, listingsFresh, tasksFresh] = await Promise.all([
+  const [
+    { data: leads },
+    { data: listings },
+    { data: tasks },
+    { data: googleToken },
+  ] = await Promise.all([
     supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("google_tokens").select("user_id").eq("user_id", user.id).maybeSingle(),
   ]);
 
-  const { data: contactsFresh } = await supabase
-    .from("contacts")
-    .select("*, leads(id, name, stage)")
-    .eq("org_id", orgId)
-    .order("created_at", { ascending: false });
+  const hasData = (leads?.length ?? 0) > 0 || (listings?.length ?? 0) > 0;
+  if (!hasData) await seedDemoData(supabase, orgId, user.id);
+
+  const [leadsFresh, listingsFresh, tasksFresh, { data: contactsFresh }] = await Promise.all([
+    supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("contacts").select("*, leads(id, name, stage)").eq("org_id", orgId).order("created_at", { ascending: false }),
+  ]);
 
   return (
     <>
       <Header email={user.email} />
-      <main className="main">
-        <Suspense fallback={null}>
-          <CalendarConnect connected={!!googleToken} />
-        </Suspense>
-        <ListingImport />
-        <ExportPanel />
-        <DashboardCards
-          leads={leadsFresh.data ?? []}
-          listings={listingsFresh.data ?? []}
-          tasks={tasksFresh.data ?? []}
-        />
-        <LeadsTable leads={leadsFresh.data ?? []} />
-        <ListingsGrid listings={listingsFresh.data ?? []} />
-        <KanbanBoard tasks={tasksFresh.data ?? []} />
-        <ContactsPanel initialContacts={contactsFresh ?? []} />
-      </main>
+      <DashboardTabs
+        leads={leadsFresh.data ?? []}
+        listings={listingsFresh.data ?? []}
+        tasks={tasksFresh.data ?? []}
+        contacts={contactsFresh ?? []}
+        calendarConnected={!!googleToken}
+      />
       <footer className="footer">
         <p>© 2026 Real‑Estate CRM</p>
       </footer>
@@ -120,64 +94,18 @@ async function seedDemoData(
   userId: string
 ) {
   await supabase.from("leads").insert([
-    {
-      org_id: orgId,
-      name: "Alice Johnson",
-      email: "alice@example.com",
-      phone: "555-1234",
-      tags: ["Buyer"],
-      stage: "new",
-      assigned_agent_id: userId,
-    },
-    {
-      org_id: orgId,
-      name: "Bob Smith",
-      email: "bob@example.com",
-      phone: "555-5678",
-      tags: ["Seller"],
-      stage: "contacted",
-      assigned_agent_id: userId,
-    },
-    {
-      org_id: orgId,
-      name: "Carol Lee",
-      email: "carol@example.com",
-      phone: "555-9012",
-      tags: ["Investor"],
-      stage: "qualified",
-    },
+    { org_id: orgId, name: "Alice Johnson", email: "alice@example.com", phone: "555-1234", tags: ["Buyer"],    stage: "new",       assigned_agent_id: userId },
+    { org_id: orgId, name: "Bob Smith",     email: "bob@example.com",   phone: "555-5678", tags: ["Seller"],   stage: "contacted", assigned_agent_id: userId },
+    { org_id: orgId, name: "Carol Lee",     email: "carol@example.com", phone: "555-9012", tags: ["Investor"], stage: "qualified" },
   ]);
-
   await supabase.from("listings").insert([
-    {
-      org_id: orgId,
-      title: "Modern Condo",
-      address: "123 Main St",
-      price_display: "$2,400 / month",
-      status: "active",
-      external_source: "seed",
-      external_id: "demo-condo-1",
-    },
-    {
-      org_id: orgId,
-      title: "Spacious Townhouse",
-      address: "456 Oak Ave",
-      price_display: "$3,200 / month",
-      status: "active",
-      external_source: "seed",
-      external_id: "demo-town-2",
-    },
+    { org_id: orgId, title: "Modern Condo",     address: "123 Main St", price_display: "$2,400 / month", status: "active", external_source: "seed", external_id: "demo-condo-1" },
+    { org_id: orgId, title: "Spacious Townhouse", address: "456 Oak Ave", price_display: "$3,200 / month", status: "active", external_source: "seed", external_id: "demo-town-2" },
   ]);
-
   await supabase.from("tasks").insert([
-    { org_id: orgId, title: "Call new leads", status: "todo", assigned_agent_id: userId },
-    { org_id: orgId, title: "Schedule open house", status: "todo" },
-    {
-      org_id: orgId,
-      title: "Prepare contract for 1401 Elm",
-      status: "inprogress",
-      due_at: new Date(Date.now() + 86400000 * 3).toISOString(),
-    },
-    { org_id: orgId, title: "Update MLS listings", status: "done" },
+    { org_id: orgId, title: "Call new leads",             status: "todo",       assigned_agent_id: userId },
+    { org_id: orgId, title: "Schedule open house",        status: "todo" },
+    { org_id: orgId, title: "Prepare contract for 1401 Elm", status: "inprogress", due_at: new Date(Date.now() + 86400000 * 3).toISOString() },
+    { org_id: orgId, title: "Update MLS listings",        status: "done" },
   ]);
 }

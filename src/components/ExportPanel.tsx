@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 
-type ExportType = "all" | "leads" | "listings" | "tasks";
+type ExportType = "all" | "leads" | "contacts" | "listings" | "tasks";
 type ExportFormat = "csv" | "json";
 
 const TYPES: { value: ExportType; label: string }[] = [
-  { value: "all", label: "All data" },
-  { value: "leads", label: "Leads only" },
-  { value: "listings", label: "Listings only" },
-  { value: "tasks", label: "Tasks only" },
+  { value: "all",      label: "All data" },
+  { value: "leads",    label: "Leads" },
+  { value: "contacts", label: "Contacts" },
+  { value: "listings", label: "Listings" },
+  { value: "tasks",    label: "Tasks" },
 ];
 
-export function ExportPanel() {
+export function ExportPanel({ compact = false }: { compact?: boolean }) {
   const [type, setType] = useState<ExportType>("all");
   const [format, setFormat] = useState<ExportFormat>("csv");
   const [loading, setLoading] = useState(false);
@@ -41,63 +42,54 @@ export function ExportPanel() {
     }
   }
 
+  const controls = (
+    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+      <select
+        className="input"
+        style={{ maxWidth: "160px", margin: 0, fontSize: "0.88rem" }}
+        value={type}
+        onChange={(e) => setType(e.target.value as ExportType)}
+        aria-label="Export type"
+      >
+        {TYPES.map((t) => (
+          <option key={t.value} value={t.value}>{t.label}</option>
+        ))}
+      </select>
+
+      <div style={{ display: "flex", gap: "0.35rem" }}>
+        {(["csv", "json"] as ExportFormat[]).map((f) => (
+          <button
+            key={f}
+            type="button"
+            className={`btn${format === f ? " btn-primary" : ""}`}
+            onClick={() => setFormat(f)}
+            style={{ padding: "0.4rem 0.75rem", fontSize: "0.82rem" }}
+          >
+            {f.toUpperCase()}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={handleExport}
+        disabled={loading}
+        style={{ fontSize: "0.88rem" }}
+      >
+        {loading ? "…" : "⬇ Download"}
+      </button>
+    </div>
+  );
+
+  if (compact) return controls;
+
   return (
     <section className="glass export-panel" style={{ marginBottom: "2rem" }}>
       <h2>Export Data</h2>
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginTop: "1rem", alignItems: "center" }}>
-        <div>
-          <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.25rem" }}>
-            What to export
-          </label>
-          <select
-            className="input"
-            style={{ maxWidth: "180px", margin: 0 }}
-            value={type}
-            onChange={(e) => setType(e.target.value as ExportType)}
-          >
-            {TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.25rem" }}>
-            Format
-          </label>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button
-              type="button"
-              className={`btn${format === "csv" ? " btn-primary" : ""}`}
-              onClick={() => setFormat("csv")}
-            >
-              CSV
-            </button>
-            <button
-              type="button"
-              className={`btn${format === "json" ? " btn-primary" : ""}`}
-              onClick={() => setFormat("json")}
-            >
-              JSON
-            </button>
-          </div>
-        </div>
-
-        <div style={{ alignSelf: "flex-end" }}>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleExport}
-            disabled={loading}
-          >
-            {loading ? "Exporting…" : `⬇ Download ${format.toUpperCase()}`}
-          </button>
-        </div>
-      </div>
-      <p className="status-msg" style={{ marginTop: "0.75rem" }}>
-        CSV opens in Excel / Google Sheets. JSON is useful for backups or importing elsewhere.
+      <div style={{ marginTop: "1rem" }}>{controls}</div>
+      <p className="status-msg" style={{ marginTop: "0.75rem", fontSize: "0.82rem" }}>
+        CSV opens in Excel / Google Sheets. JSON is useful for backups.
       </p>
     </section>
   );
