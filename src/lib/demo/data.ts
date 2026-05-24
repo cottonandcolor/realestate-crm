@@ -1,4 +1,4 @@
-import type { Contact, Lead, Listing, Task } from "@/lib/types/database";
+import type { Activity, Contact, Lead, Listing, Task } from "@/lib/types/database";
 import { DEMO_USER } from "./constants";
 
 const orgId = "00000000-0000-4000-8000-000000000010";
@@ -171,6 +171,89 @@ export function createSeedListings(): Listing[] {
       metadata: {},
       created_at: ts(-1),
       updated_at: ts(-1),
+    },
+  ];
+}
+
+const SEED_LEAD_IDS = {
+  alice: "10000000-0000-4000-8000-000000000001",
+  bob:   "10000000-0000-4000-8000-000000000002",
+  carol: "10000000-0000-4000-8000-000000000003",
+};
+
+export function createSeedActivities(): Activity[] {
+  return [
+    {
+      id: "a0000000-0000-4000-8000-000000000001",
+      org_id: orgId,
+      type: "call",
+      description: "Left voicemail, will call back tomorrow.",
+      lead_id: SEED_LEAD_IDS.alice,
+      contact_id: SEED_CONTACT_IDS.alice,
+      listing_id: null,
+      task_id: null,
+      created_by: DEMO_USER.id,
+      created_at: ts(-2),
+    },
+    {
+      id: "a0000000-0000-4000-8000-000000000002",
+      org_id: orgId,
+      type: "email",
+      description: "Sent listing packet for 3 downtown condos.",
+      lead_id: SEED_LEAD_IDS.alice,
+      contact_id: SEED_CONTACT_IDS.alice,
+      listing_id: null,
+      task_id: null,
+      created_by: DEMO_USER.id,
+      created_at: ts(-1),
+    },
+    {
+      id: "a0000000-0000-4000-8000-000000000003",
+      org_id: orgId,
+      type: "note",
+      description: "Prefers a 2-bed, budget around $2,500/mo. No pets.",
+      lead_id: SEED_LEAD_IDS.alice,
+      contact_id: SEED_CONTACT_IDS.alice,
+      listing_id: null,
+      task_id: null,
+      created_by: DEMO_USER.id,
+      created_at: ts(-1),
+    },
+    {
+      id: "a0000000-0000-4000-8000-000000000004",
+      org_id: orgId,
+      type: "call",
+      description: "Discussed pricing expectations. Wants to list at $550k.",
+      lead_id: SEED_LEAD_IDS.bob,
+      contact_id: SEED_CONTACT_IDS.bob,
+      listing_id: null,
+      task_id: null,
+      created_by: DEMO_USER.id,
+      created_at: ts(-4),
+    },
+    {
+      id: "a0000000-0000-4000-8000-000000000005",
+      org_id: orgId,
+      type: "showing",
+      description: "Toured Oak Street Rental with Carol. She liked the kitchen.",
+      lead_id: SEED_LEAD_IDS.carol,
+      contact_id: SEED_CONTACT_IDS.carol,
+      listing_id: "20000000-0000-4000-8000-000000000004",
+      task_id: null,
+      created_by: DEMO_USER.id,
+      created_at: ts(-3),
+    },
+    {
+      id: "a0000000-0000-4000-8000-000000000006",
+      org_id: orgId,
+      type: "note",
+      description: "Carol is looking at 3–4 investment properties. Needs cap rate > 6%.",
+      lead_id: SEED_LEAD_IDS.carol,
+      contact_id: SEED_CONTACT_IDS.carol,
+      listing_id: null,
+      task_id: null,
+      created_by: DEMO_USER.id,
+      created_at: ts(-2),
     },
   ];
 }

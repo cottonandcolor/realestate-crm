@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Contact, Lead } from "@/lib/types/database";
+import { ActivityFeed } from "./ActivityFeed";
 
 type ContactWithLeads = Contact & { leads?: Pick<Lead, "id" | "name" | "stage">[] };
 
@@ -23,6 +24,7 @@ function ContactCard({
   onDelete: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
 
   return (
@@ -76,6 +78,22 @@ function ContactCard({
           )}
         </div>
       )}
+
+      {/* Activity feed toggle */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "0.5rem", marginTop: "0.25rem" }}>
+        <button
+          type="button"
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-primary)", fontSize: "0.82rem", padding: 0 }}
+          onClick={() => setShowActivity(!showActivity)}
+        >
+          {showActivity ? "▾" : "▸"} Activity & Notes
+        </button>
+        {showActivity && (
+          <div style={{ marginTop: "0.75rem" }}>
+            <ActivityFeed contactId={contact.id} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

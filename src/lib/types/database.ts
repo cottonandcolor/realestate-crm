@@ -4,6 +4,19 @@ export type ListingStatus = "active" | "pending" | "sold" | "off_market";
 export type PropertyType = "sfh" | "condo" | "townhome" | "land" | "lease" | "rental";
 export type TaskStatus = "todo" | "inprogress" | "done";
 export type ActivityType = "call" | "email" | "showing" | "note";
+
+export interface Activity {
+  id: string;
+  org_id: string;
+  type: ActivityType;
+  description: string | null;
+  lead_id: string | null;
+  contact_id: string | null;
+  listing_id: string | null;
+  task_id: string | null;
+  created_by: string | null;
+  created_at: string;
+}
 export type ImportStatus = "pending" | "processing" | "completed" | "failed";
 
 export interface Organization {

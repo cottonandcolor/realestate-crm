@@ -1,5 +1,5 @@
-import type { Contact, Lead, Listing, Task, TaskStatus } from "@/lib/types/database";
-import { createSeedLeads, createSeedListings, createSeedTasks, createSeedContacts } from "./data";
+import type { Activity, ActivityType, Contact, Lead, Listing, Task, TaskStatus } from "@/lib/types/database";
+import { createSeedLeads, createSeedListings, createSeedTasks, createSeedContacts, createSeedActivities } from "./data";
 import { DEMO_USER } from "./constants";
 
 const orgId = "00000000-0000-4000-8000-000000000010";
@@ -8,9 +8,10 @@ let leads = createSeedLeads();
 let listings = createSeedListings();
 let tasks = createSeedTasks();
 let contacts = createSeedContacts();
+let activities = createSeedActivities();
 
 export function getDemoStore() {
-  return { leads, listings, tasks, contacts };
+  return { leads, listings, tasks, contacts, activities };
 }
 
 export function resetDemoStore() {
@@ -18,6 +19,41 @@ export function resetDemoStore() {
   listings = createSeedListings();
   tasks = createSeedTasks();
   contacts = createSeedContacts();
+  activities = createSeedActivities();
+}
+
+export function getDemoActivities(opts: { leadId?: string; contactId?: string }): Activity[] {
+  return activities
+    .filter((a) => {
+      if (opts.leadId && a.lead_id !== opts.leadId) return false;
+      if (opts.contactId && a.contact_id !== opts.contactId) return false;
+      return true;
+    })
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+export function addDemoActivity(
+  createdBy: string,
+  data: { type: ActivityType; description: string; lead_id?: string; contact_id?: string; listing_id?: string }
+): Activity {
+  const activity: Activity = {
+    id: crypto.randomUUID(),
+    org_id: orgId,
+    type: data.type,
+    description: data.description,
+    lead_id: data.lead_id ?? null,
+    contact_id: data.contact_id ?? null,
+    listing_id: data.listing_id ?? null,
+    task_id: null,
+    created_by: createdBy ?? DEMO_USER.id,
+    created_at: new Date().toISOString(),
+  };
+  activities = [activity, ...activities];
+  return activity;
+}
+
+export function deleteDemoActivity(id: string) {
+  activities = activities.filter((a) => a.id !== id);
 }
 
 export function updateDemoTaskStatus(taskId: string, status: TaskStatus): boolean {
