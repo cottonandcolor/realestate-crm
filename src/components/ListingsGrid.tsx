@@ -13,12 +13,21 @@ const TYPE_LABELS: Record<PropertyType, string> = {
 };
 
 const TYPE_COLORS: Record<PropertyType, string> = {
-  sfh: "#2d6a4f",
-  condo: "#1a6496",
-  townhome: "#7b2d8b",
-  land: "#8b5e2d",
-  lease: "#1a4c6e",
-  rental: "#b5451b",
+  sfh:      "#34d399",
+  condo:    "#22d3ee",
+  townhome: "#a78bfa",
+  land:     "#fbbf24",
+  lease:    "#818cf8",
+  rental:   "#fb7185",
+};
+
+const LISTING_ICONS: Record<PropertyType, string> = {
+  sfh:      "🏡",
+  condo:    "🏢",
+  townhome: "🏘",
+  land:     "🌿",
+  lease:    "🔑",
+  rental:   "🏠",
 };
 
 const ALL_TYPES: (PropertyType | "all")[] = [
@@ -34,14 +43,15 @@ function TypeBadge({ type }: { type: PropertyType }) {
         fontWeight: 700,
         letterSpacing: "0.05em",
         textTransform: "uppercase",
-        padding: "0.2rem 0.5rem",
-        borderRadius: "4px",
-        background: TYPE_COLORS[type],
-        color: "#fff",
-        marginBottom: "0.35rem",
+        padding: "0.18rem 0.55rem",
+        borderRadius: "999px",
+        background: TYPE_COLORS[type] + "25",
+        color: TYPE_COLORS[type],
+        border: `1px solid ${TYPE_COLORS[type]}55`,
+        marginBottom: "0.4rem",
       }}
     >
-      {TYPE_LABELS[type]}
+      {LISTING_ICONS[type]} {TYPE_LABELS[type]}
     </span>
   );
 }
@@ -98,12 +108,12 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
                 background:
                   activeType === t
                     ? t === "all"
-                      ? "var(--color-primary-light)"
-                      : TYPE_COLORS[t as PropertyType]
+                      ? "var(--indigo-500)"
+                      : TYPE_COLORS[t as PropertyType] + "33"
                     : "var(--color-card-bg)",
-                color: activeType === t ? "#fff" : "var(--color-text)",
-                boxShadow:
-                  activeType === t ? "0 2px 6px rgba(0,0,0,0.15)" : "none",
+                border: `1px solid ${activeType === t ? (t === "all" ? "var(--indigo-500)" : TYPE_COLORS[t as PropertyType]) : "var(--color-border)"}`,
+                color: activeType === t ? (t === "all" ? "#fff" : TYPE_COLORS[t as PropertyType]) : "var(--color-text-muted)",
+                boxShadow: "none",
                 transition: "var(--transition)",
               }}
             >
@@ -120,7 +130,9 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={l.image_url} alt={l.title} />
             ) : (
-              <div className="listing-placeholder">No photo</div>
+              <div className="listing-placeholder">
+                {l.property_type ? LISTING_ICONS[l.property_type] : "🏠"}
+              </div>
             )}
             <div className="info">
               {l.property_type && <TypeBadge type={l.property_type} />}

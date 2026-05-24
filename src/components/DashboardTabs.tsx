@@ -38,11 +38,12 @@ function TabBar({
     <div
       style={{
         position: "sticky",
-        top: 0,
+        top: "56px",
         zIndex: 100,
         background: "var(--color-bg)",
-        borderBottom: "1px solid rgba(255,255,255,0.1)",
-        paddingBottom: "0",
+        borderBottom: "1px solid var(--color-border)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
       }}
     >
       <div
@@ -50,7 +51,7 @@ function TabBar({
           display: "flex",
           gap: 0,
           overflowX: "auto",
-          padding: "0 2rem",
+          padding: "0 1.75rem",
           scrollbarWidth: "none",
         }}
       >
@@ -66,23 +67,24 @@ function TabBar({
                 display: "flex",
                 alignItems: "center",
                 gap: "0.4rem",
-                padding: "0.85rem 1.25rem",
+                padding: "0.9rem 1.1rem",
                 border: "none",
                 borderBottom: isActive
-                  ? "3px solid var(--color-primary-light)"
-                  : "3px solid transparent",
+                  ? "2px solid var(--indigo-400)"
+                  : "2px solid transparent",
                 background: "transparent",
-                color: isActive ? "var(--color-primary-light)" : "var(--color-text)",
+                color: isActive ? "var(--indigo-400)" : "var(--color-text-muted)",
                 cursor: "pointer",
-                fontWeight: isActive ? 600 : 400,
-                fontSize: "0.9rem",
+                fontWeight: isActive ? 600 : 500,
+                fontSize: "0.88rem",
                 whiteSpace: "nowrap",
-                opacity: isActive ? 1 : 0.65,
-                transition: "all 0.15s",
+                transition: "color 0.15s, border-color 0.15s",
                 flexShrink: 0,
               }}
+              onMouseOver={(e) => { if (!isActive) e.currentTarget.style.color = "var(--color-text)"; }}
+              onMouseOut={(e) => { if (!isActive) e.currentTarget.style.color = "var(--color-text-muted)"; }}
             >
-              <span>{tab.icon}</span>
+              <span style={{ fontSize: "0.95rem" }}>{tab.icon}</span>
               <span>{tab.label}</span>
               {count !== undefined && (
                 <span
@@ -90,15 +92,13 @@ function TabBar({
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    minWidth: "20px",
-                    height: "20px",
+                    minWidth: "19px",
+                    height: "19px",
                     padding: "0 5px",
                     borderRadius: "999px",
-                    background: isActive
-                      ? "var(--color-primary-light)"
-                      : "rgba(255,255,255,0.12)",
-                    color: isActive ? "#fff" : "inherit",
-                    fontSize: "0.72rem",
+                    background: isActive ? "var(--indigo-500)" : "var(--color-border)",
+                    color: isActive ? "#fff" : "var(--color-text-muted)",
+                    fontSize: "0.7rem",
                     fontWeight: 700,
                     lineHeight: 1,
                   }}

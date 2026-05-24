@@ -1,242 +1,446 @@
-/* Ported from legacy assets/css/style.css */
+/* ─── Design tokens ──────────────────────────────────────────────────────── */
 :root {
   --font-sans: "Inter", system-ui, sans-serif;
-  --color-primary-light: #20b2aa;
-  --color-primary-dark: #1a2b4c;
-  --color-bg-light: #f0f4f8;
-  --color-bg-dark: #0d1117;
-  --color-card-bg: rgba(255, 255, 255, 0.25);
-  --color-card-bg-dark: rgba(20, 30, 40, 0.55);
-  --blur-glass: 12px;
-  --radius: 12px;
-  --transition: 0.3s ease;
+
+  /* Brand */
+  --indigo-400: #818cf8;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --cyan-400:   #22d3ee;
+  --cyan-500:   #06b6d4;
+  --violet-400: #a78bfa;
+  --emerald-400: #34d399;
+  --rose-400:    #fb7185;
+  --amber-400:   #fbbf24;
+
+  /* Shared */
+  --radius:     14px;
+  --radius-sm:  8px;
+  --blur-glass: 16px;
+  --transition: 0.2s ease;
 }
 
+/* ─── Dark theme ─────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
-  --color-primary: var(--color-primary-light);
-  --color-bg: var(--color-bg-dark);
-  --color-card-bg: var(--color-card-bg-dark);
-  --color-text: #e0e6ed;
+  --color-bg:       #060a14;
+  --color-surface:  #0d1326;
+  --color-card-bg:  rgba(255, 255, 255, 0.04);
+  --color-card-border: rgba(255, 255, 255, 0.09);
+  --color-card-hover:  rgba(255, 255, 255, 0.07);
+  --color-text:     #e8edf5;
+  --color-text-muted: #8492a6;
+  --color-primary:  var(--indigo-400);
+  --color-primary-solid: var(--indigo-500);
+  --color-accent:   var(--cyan-400);
+  --color-border:   rgba(255, 255, 255, 0.08);
+  --color-input-bg: rgba(255, 255, 255, 0.06);
+  --header-bg:      linear-gradient(135deg, #0f0c29 0%, #302b63 60%, #24243e 100%);
+  --shadow-card:    0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
+  --shadow-hover:   0 8px 32px rgba(99, 102, 241, 0.15), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --orb-a: radial-gradient(ellipse 60% 50% at 15% 10%, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+  --orb-b: radial-gradient(ellipse 55% 45% at 85% 85%, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
+  --orb-c: radial-gradient(ellipse 40% 35% at 55% 50%, rgba(139, 92, 246, 0.05) 0%, transparent 70%);
 }
 
+/* ─── Light theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --color-primary: var(--color-primary-dark);
-  --color-bg: var(--color-bg-light);
-  --color-card-bg: var(--color-card-bg);
-  --color-text: #1a202c;
+  --color-bg:       #f1f5fb;
+  --color-surface:  #ffffff;
+  --color-card-bg:  rgba(255, 255, 255, 0.85);
+  --color-card-border: rgba(0, 0, 0, 0.07);
+  --color-card-hover:  rgba(255, 255, 255, 1);
+  --color-text:     #1a2035;
+  --color-text-muted: #64748b;
+  --color-primary:  var(--indigo-600);
+  --color-primary-solid: var(--indigo-600);
+  --color-accent:   var(--cyan-500);
+  --color-border:   rgba(0, 0, 0, 0.08);
+  --color-input-bg: rgba(255, 255, 255, 0.9);
+  --header-bg:      linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #7c3aed 100%);
+  --shadow-card:    0 2px 16px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-hover:   0 6px 24px rgba(79, 70, 229, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --orb-a: radial-gradient(ellipse 60% 50% at 15% 10%, rgba(79, 70, 229, 0.06) 0%, transparent 70%);
+  --orb-b: radial-gradient(ellipse 55% 45% at 85% 85%, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
+  --orb-c: none;
 }
 
-* {
+/* ─── Reset ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html,
-body {
+/* ─── Base ───────────────────────────────────────────────────────────────── */
+html, body {
   min-height: 100%;
   font-family: var(--font-sans);
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-text);
-  transition: var(--transition);
+  transition: background-color var(--transition), color var(--transition);
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Ambient background orbs */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: var(--orb-a), var(--orb-b), var(--orb-c);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#__next, main { position: relative; z-index: 1; }
 
 a {
   color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* ─── Header / Topbar ────────────────────────────────────────────────────── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 500;
 }
 
 .header .hero {
-  min-height: 60px;
-  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary-light));
+  height: 56px;
+  background: var(--header-bg);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
+  padding: 0 1.75rem;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .header .hero h1 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #fff;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header .hero h1::before {
+  content: "⌂";
+  font-size: 1.1rem;
+  opacity: 0.9;
 }
 
 .header-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
-.theme-toggle,
+/* ─── Buttons ────────────────────────────────────────────────────────────── */
 .btn {
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
   text-decoration: none;
-  transition: var(--transition);
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+  white-space: nowrap;
 }
 
-.theme-toggle {
-  font-size: 1.4rem;
-  padding: 0.4rem 0.6rem;
+.btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
 }
 
-.btn:hover,
-.theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.25);
+/* Outside the header, buttons take theme colors */
+main .btn {
+  background: var(--color-card-bg);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+main .btn:hover {
+  background: var(--color-card-hover);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-hover);
 }
 
 .btn-primary {
-  background: var(--color-primary-light);
-  border-color: transparent;
-  color: #fff;
+  background: linear-gradient(135deg, var(--indigo-500), var(--violet-400)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35) !important;
 }
 
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--indigo-600), var(--indigo-500)) !important;
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.5) !important;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.theme-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: background var(--transition);
+}
+.theme-toggle:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* ─── Glass cards ────────────────────────────────────────────────────────── */
 .glass {
   background: var(--color-card-bg);
   backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
   border-radius: var(--radius);
   padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: var(--transition);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow var(--transition), border-color var(--transition);
 }
 
-.main {
-  padding: 2rem;
+.glass:hover {
+  border-color: rgba(99, 102, 241, 0.25);
 }
+
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+.main { padding: 1.75rem; }
 
 @media (min-width: 900px) {
-  .main {
-    padding: 2rem 3rem;
-  }
+  .main { padding: 1.75rem 2.5rem; }
 }
 
-section {
-  margin-bottom: 3rem;
-}
+section { margin-bottom: 2.5rem; }
 
 section h2 {
   margin-bottom: 1rem;
-  font-weight: 600;
-  color: var(--color-primary);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
 }
 
-.cards {
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
+/* ─── Stat cards (Overview) ──────────────────────────────────────────────── */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
 
 .card {
-  flex: 1 1 200px;
-  text-align: center;
+  padding: 1.4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.card-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
 }
 
 .card h3 {
-  margin-bottom: 0.5rem;
+  font-size: 0.78rem;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
 }
 
-.card p {
-  font-size: 1.4rem;
-  font-weight: 700;
+.card .card-value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text);
+  letter-spacing: -0.04em;
 }
 
+.card .card-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ─── Table ──────────────────────────────────────────────────────────────── */
 table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.9rem;
 }
 
-th,
-td {
-  padding: 0.8rem 1rem;
-  text-align: left;
+thead {
+  border-bottom: 1px solid var(--color-border);
 }
 
 th {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
   cursor: pointer;
+  user-select: none;
 }
 
-tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.05);
-}
+th:hover { color: var(--color-primary); }
 
-.search,
-.input {
-  margin-bottom: 1rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: 6px;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  width: 100%;
-  max-width: 300px;
-  background: var(--color-card-bg);
+td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
 }
 
+tbody tr {
+  transition: background var(--transition);
+}
+
+tbody tr:hover {
+  background: var(--color-card-hover);
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+/* ─── Inputs ─────────────────────────────────────────────────────────────── */
+.search,
+.input {
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  width: 100%;
+  max-width: 320px;
+  background: var(--color-input-bg);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+}
+
+.search:focus,
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+select.input { cursor: pointer; }
+
+/* ─── Listings grid ──────────────────────────────────────────────────────── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 1.25rem;
+}
+
+.listing-card {
+  padding: 0 !important;
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition) !important;
+}
+
+.listing-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-hover) !important;
 }
 
 .listing-card img,
 .listing-placeholder {
   width: 100%;
-  height: 160px;
+  height: 155px;
   object-fit: cover;
   border-radius: var(--radius) var(--radius) 0 0;
-  background: linear-gradient(135deg, #1a2b4c33, #20b2aa33);
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(6,182,212,0.1));
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text);
-  opacity: 0.6;
+  font-size: 2.5rem;
 }
 
 .listing-card .info {
-  padding: 0.8rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
+.listing-card .info h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Kanban ─────────────────────────────────────────────────────────────── */
 .kanban {
   display: flex;
   gap: 1rem;
   overflow-x: auto;
+  padding-bottom: 1rem;
+  align-items: flex-start;
 }
 
 .column {
-  flex: 1 0 200px;
+  flex: 1 0 240px;
+  max-width: 320px;
 }
 
 .column h3 {
   text-align: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
 }
 
 .task-list {
   list-style: none;
   min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .task-list li {
   background: var(--color-card-bg);
-  margin: 0.4rem 0;
-  padding: 0.6rem 0.8rem;
-  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
   cursor: grab;
+  font-size: 0.88rem;
+  transition: box-shadow var(--transition), border-color var(--transition);
 }
 
-.footer {
-  text-align: center;
-  padding: 1rem;
-  font-size: 0.9rem;
-  opacity: 0.7;
+.task-list li:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.12);
 }
 
+/* ─── Auth pages ─────────────────────────────────────────────────────────── */
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -252,13 +456,18 @@ tr:nth-child(even) {
 
 .auth-card h1 {
   margin-bottom: 1.5rem;
-  color: var(--color-primary);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.03em;
 }
 
 .auth-card label {
   display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
 }
 
 .auth-card .input {
@@ -267,11 +476,12 @@ tr:nth-child(even) {
 }
 
 .auth-error {
-  color: #e53e3e;
+  color: var(--rose-400);
   margin-bottom: 1rem;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
+/* ─── Misc ───────────────────────────────────────────────────────────────── */
 .integrations {
   display: flex;
   flex-wrap: wrap;
@@ -284,30 +494,41 @@ tr:nth-child(even) {
   min-height: 120px;
   margin: 0.5rem 0 1rem;
   padding: 0.75rem;
-  border-radius: 8px;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  background: var(--color-card-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-input-bg);
   color: var(--color-text);
   font-family: monospace;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--transition);
 }
+.import-panel textarea:focus { border-color: var(--color-primary); }
 
 .status-msg {
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-  opacity: 0.85;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
 }
 
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  margin-top: 2rem;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); }
+
+/* ─── Mobile ─────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .header .hero {
-    flex-direction: column;
-    text-align: center;
-    padding: 1.5rem;
-  }
-  .cards {
-    flex-direction: column;
-  }
-  .main {
-    padding: 1rem 2rem;
-  }
+  .header .hero { padding: 0 1rem; }
+  .main { padding: 1rem; }
+  .kanban { gap: 0.75rem; }
 }
