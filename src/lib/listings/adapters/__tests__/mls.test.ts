@@ -97,4 +97,24 @@ describe("mlsListingAdapter", () => {
     expect(result).toHaveLength(1);
     expect(result[0].external_id).toBe("MLS-001");
   });
+
+  it("maps PropertyType: Condominium -> condo", () => {
+    const result = mlsListingAdapter.parse({ ...sampleItem, PropertyType: "Condominium" });
+    expect(result[0].property_type).toBe("condo");
+  });
+
+  it("maps PropertyType: Single Family -> sfh", () => {
+    const result = mlsListingAdapter.parse({ ...sampleItem, PropertyType: "Single Family" });
+    expect(result[0].property_type).toBe("sfh");
+  });
+
+  it("maps PropertyType: Townhouse -> townhome", () => {
+    const result = mlsListingAdapter.parse({ ...sampleItem, PropertyType: "Townhouse" });
+    expect(result[0].property_type).toBe("townhome");
+  });
+
+  it("returns undefined property_type for unknown PropertyType", () => {
+    const result = mlsListingAdapter.parse({ ...sampleItem, PropertyType: "UnknownType" });
+    expect(result[0].property_type).toBeUndefined();
+  });
 });

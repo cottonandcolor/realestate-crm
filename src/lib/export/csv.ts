@@ -32,12 +32,13 @@ export function leadsToCSV(leads: Lead[]): string {
 
 export function listingsToCSV(listings: Listing[]): string {
   const headers = [
-    "Title", "Address", "Price", "Status",
+    "Title", "Address", "Price", "Status", "Property Type",
     "External Source", "External ID", "Image URL", "Created At",
   ];
   const rows = listings.map((l) => [
     l.title, l.address ?? "", l.price_display ?? "",
-    l.status, l.external_source ?? "", l.external_id ?? "",
+    l.status, l.property_type ?? "",
+    l.external_source ?? "", l.external_id ?? "",
     l.image_url ?? "", l.created_at,
   ]);
   return toCsvString(headers, rows);

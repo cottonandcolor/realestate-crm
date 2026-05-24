@@ -1,3 +1,7 @@
-title,address,price,status,external_id,image_url
-Modern Condo,123 Main St Austin TX,$2400 / month,active,condo-001,
-Spacious Townhouse,456 Oak Ave Dallas TX,$3200 / month,active,town-002,
+title,address,price,status,property_type,external_id,image_url
+Modern Condo,123 Main St Austin TX,$2400 / month,active,condo,condo-001,
+Spacious Townhouse,456 Oak Ave Dallas TX,$3200 / month,active,townhome,town-002,
+Green Acres Plot,789 Country Rd,$150000,active,land,land-003,
+Oak Street Rental,321 Oak St,$1800 / month,active,rental,rental-004,
+Elm Ave SFH,555 Elm Ave,$450000,active,sfh,sfh-005,
+Downtown Lease,100 Commerce Blvd,$2800 / month,active,lease,lease-006,

@@ -1,4 +1,20 @@
-import type { ListingImportAdapter, NormalizedListing } from "./types";
+import type { ListingImportAdapter, NormalizedListing, PropertyType } from "./types";
+import { PROPERTY_TYPES } from "./types";
+
+function parsePropertyType(raw: string): PropertyType | undefined {
+  const s = raw.toLowerCase().trim().replace(/[\s-]/g, "");
+  const aliases: Record<string, PropertyType> = {
+    sfh: "sfh", singlefamily: "sfh", singlefamilyhome: "sfh", house: "sfh",
+    condo: "condo", condominium: "condo",
+    townhome: "townhome", townhouse: "townhome",
+    land: "land", lot: "land",
+    lease: "lease",
+    rental: "rental", rent: "rental",
+  };
+  if (aliases[s]) return aliases[s];
+  if (PROPERTY_TYPES.includes(s as PropertyType)) return s as PropertyType;
+  return undefined;
+}
 
 function parseCsvLine(line: string): string[] {
   const result: string[] = [];
@@ -53,6 +69,9 @@ export const csvListingAdapter: ListingImportAdapter = {
       const status = ["active", "pending", "sold", "off_market"].includes(statusRaw)
         ? (statusRaw as NormalizedListing["status"])
         : "active";
+      const propertyType = parsePropertyType(
+        row.property_type || row.type || row.property_category || ""
+      );
 
       listings.push({
         title,
@@ -60,6 +79,7 @@ export const csvListingAdapter: ListingImportAdapter = {
         price_display: priceDisplay || undefined,
         price_cents: priceCents,
         status,
+        property_type: propertyType,
         image_url: imageUrl,
         external_source: "csv",
         external_id: externalId,

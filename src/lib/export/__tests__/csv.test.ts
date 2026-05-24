@@ -24,6 +24,7 @@ const listing: Listing = {
   price_display: "$2,400 / month",
   price_cents: 240000,
   status: "active",
+  property_type: "condo",
   image_url: null,
   external_source: "csv",
   external_id: "condo-1",
@@ -106,17 +107,23 @@ describe("listingsToCSV", () => {
   it("produces a header row", () => {
     const csv = listingsToCSV([listing]);
     const firstLine = csv.split("\r\n")[0];
-    expect(firstLine).toBe("Title,Address,Price,Status,External Source,External ID,Image URL,Created At");
+    expect(firstLine).toBe("Title,Address,Price,Status,Property Type,External Source,External ID,Image URL,Created At");
   });
 
-  it("includes listing data", () => {
+  it("includes listing data including property_type", () => {
     const csv = listingsToCSV([listing]);
     expect(csv).toContain("Modern Condo");
     expect(csv).toContain("123 Main St");
     expect(csv).toContain("$2,400 / month");
     expect(csv).toContain("active");
+    expect(csv).toContain("condo");
     expect(csv).toContain("csv");
     expect(csv).toContain("condo-1");
+  });
+
+  it("handles null property_type", () => {
+    const csv = listingsToCSV([{ ...listing, property_type: null }]);
+    expect(csv).not.toContain("undefined");
   });
 
   it("escapes price with comma inside quotes", () => {

@@ -1,4 +1,17 @@
-import type { ListingImportAdapter, NormalizedListing } from "./types";
+import type { ListingImportAdapter, NormalizedListing, PropertyType } from "./types";
+
+function mapMlsPropertyType(val: unknown): PropertyType | undefined {
+  const s = String(val ?? "").toLowerCase().replace(/[\s-]/g, "");
+  const map: Record<string, PropertyType> = {
+    singlefamily: "sfh", singlefamilyresidence: "sfh", sfr: "sfh",
+    condominium: "condo", condo: "condo",
+    townhouse: "townhome", townhome: "townhome",
+    land: "land", lotsandland: "land",
+    lease: "lease",
+    rental: "rental", residentialrental: "rental",
+  };
+  return map[s];
+}
 
 /**
  * MLS / RESO webhook adapter — extend when broker API credentials are available.
@@ -50,6 +63,7 @@ export const mlsListingAdapter: ListingImportAdapter = {
         price_display: priceDisplay,
         price_cents: priceCents,
         status: mapMlsStatus(item.StandardStatus ?? item.status),
+        property_type: mapMlsPropertyType(item.PropertyType ?? item.PropertySubType ?? item.property_type),
         image_url: extractPhoto(item),
         external_source: "mls",
         external_id: listingId,

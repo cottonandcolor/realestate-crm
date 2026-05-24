@@ -1,6 +1,7 @@
 export type OrgRole = "admin" | "agent";
 export type LeadStage = "new" | "contacted" | "qualified" | "closed" | "lost";
 export type ListingStatus = "active" | "pending" | "sold" | "off_market";
+export type PropertyType = "sfh" | "condo" | "townhome" | "land" | "lease" | "rental";
 export type TaskStatus = "todo" | "inprogress" | "done";
 export type ActivityType = "call" | "email" | "showing" | "note";
 export type ImportStatus = "pending" | "processing" | "completed" | "failed";
@@ -48,6 +49,7 @@ export interface Listing {
   price_display: string | null;
   price_cents: number | null;
   status: ListingStatus;
+  property_type: PropertyType | null;
   image_url: string | null;
   external_source: string | null;
   external_id: string | null;

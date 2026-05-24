@@ -47,6 +47,7 @@ export async function upsertListings(
         price_display: listing.price_display ?? null,
         price_cents: listing.price_cents ?? null,
         status: listing.status ?? "active",
+        property_type: listing.property_type ?? null,
         image_url: listing.image_url ?? null,
         external_source: listing.external_source,
         external_id: listing.external_id,

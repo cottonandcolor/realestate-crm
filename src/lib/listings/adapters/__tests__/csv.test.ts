@@ -97,4 +97,44 @@ describe("csvListingAdapter", () => {
     const result = csvListingAdapter.parse(csv);
     expect(result[0].price_cents).toBe(25000000);
   });
+
+  it("parses property_type: condo", () => {
+    const csv = "title,external_id,property_type\nTest,t-1,condo";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBe("condo");
+  });
+
+  it("parses property_type alias: townhouse -> townhome", () => {
+    const csv = "title,external_id,property_type\nTest,t-1,townhouse";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBe("townhome");
+  });
+
+  it("parses property_type alias: single family -> sfh", () => {
+    const csv = "title,external_id,property_type\nTest,t-1,single family";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBe("sfh");
+  });
+
+  it("parses property_type: land", () => {
+    const csv = "title,external_id,property_type\nTest,t-1,land";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBe("land");
+  });
+
+  it("parses property_type: rental", () => {
+    const csv = "title,external_id,property_type\nTest,t-1,rental";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBe("rental");
+  });
+
+  it("parses property_type: lease", () => {
+    const csv = "title,external_id,property_type\nTest,t-1,lease";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBe("lease");
+  });
+
+  it("returns undefined property_type for unknown value", () => {
+    const csv = "title,external_id,property_type\nTest,t-1,unknown";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBeUndefined();
+  });
+
+  it("returns undefined property_type when column missing", () => {
+    const csv = "title,external_id\nTest,t-1";
+    expect(csvListingAdapter.parse(csv)[0].property_type).toBeUndefined();
+  });
 });
