@@ -44,24 +44,24 @@
 
 /* ─── Light theme ────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --color-bg:       #f1f5fb;
-  --color-surface:  #ffffff;
-  --color-card-bg:  rgba(255, 255, 255, 0.85);
-  --color-card-border: rgba(0, 0, 0, 0.07);
+  --color-bg:          #eef2fa;
+  --color-surface:     #f8faff;
+  --color-card-bg:     rgba(255, 255, 255, 0.92);
+  --color-card-border: rgba(99, 102, 241, 0.12);
   --color-card-hover:  rgba(255, 255, 255, 1);
-  --color-text:     #1a2035;
-  --color-text-muted: #64748b;
-  --color-primary:  var(--indigo-600);
+  --color-text:        #1a2035;
+  --color-text-muted:  #64748b;
+  --color-primary:     var(--indigo-600);
   --color-primary-solid: var(--indigo-600);
-  --color-accent:   var(--cyan-500);
-  --color-border:   rgba(0, 0, 0, 0.08);
-  --color-input-bg: rgba(255, 255, 255, 0.9);
-  --header-bg:      linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #7c3aed 100%);
-  --shadow-card:    0 2px 16px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-hover:   0 6px 24px rgba(79, 70, 229, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
-  --orb-a: radial-gradient(ellipse 60% 50% at 15% 10%, rgba(79, 70, 229, 0.06) 0%, transparent 70%);
-  --orb-b: radial-gradient(ellipse 55% 45% at 85% 85%, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
-  --orb-c: none;
+  --color-accent:      var(--cyan-500);
+  --color-border:      rgba(99, 102, 241, 0.15);
+  --color-input-bg:    #ffffff;
+  --header-bg:         linear-gradient(135deg, #312e81 0%, #4f46e5 55%, #7c3aed 100%);
+  --shadow-card:       0 2px 12px rgba(99, 102, 241, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-hover:      0 8px 24px rgba(79, 70, 229, 0.15), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --orb-a: radial-gradient(ellipse 70% 55% at 10% 5%,  rgba(99, 102, 241, 0.1)  0%, transparent 70%);
+  --orb-b: radial-gradient(ellipse 60% 50% at 90% 90%, rgba(6, 182, 212, 0.07)  0%, transparent 70%);
+  --orb-c: radial-gradient(ellipse 50% 40% at 50% 50%, rgba(167, 139, 250, 0.05) 0%, transparent 70%);
 }
 
 /* ─── Reset ──────────────────────────────────────────────────────────────── */
@@ -165,12 +165,23 @@ a:hover { text-decoration: underline; }
 /* Outside the header, buttons take theme colors */
 main .btn {
   background: var(--color-card-bg);
-  border-color: var(--color-border);
+  border: 1px solid var(--color-card-border);
   color: var(--color-text);
 }
 main .btn:hover {
   background: var(--color-card-hover);
   border-color: var(--color-primary);
+  box-shadow: var(--shadow-hover);
+}
+
+[data-theme="light"] main .btn {
+  background: #fff;
+  border-color: rgba(99, 102, 241, 0.2);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+[data-theme="light"] main .btn:hover {
+  border-color: var(--indigo-500);
   box-shadow: var(--shadow-hover);
 }
 

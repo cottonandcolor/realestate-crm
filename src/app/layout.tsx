@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="light" className={inter.variable}>
+    <html lang="en" data-theme="dark" className={inter.variable}>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
       </body>

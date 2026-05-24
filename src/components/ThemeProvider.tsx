@@ -7,9 +7,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem("theme");
-    const theme =
-      saved ||
-      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const theme = saved ?? "dark"; // default to dark
     document.documentElement.setAttribute("data-theme", theme);
     setMounted(true);
   }, []);
