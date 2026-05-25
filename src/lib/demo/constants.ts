@@ -7,9 +7,7 @@ export const DEMO_USER = {
   orgName: "Demo Realty Team",
 };
 
-/** Only when DEV_DEMO_MODE=true and not production */
+/** Enabled whenever DEV_DEMO_MODE=true (works in both local and production) */
 export function isDemoModeEnabled(): boolean {
-  return (
-    process.env.DEV_DEMO_MODE === "true" && process.env.NODE_ENV !== "production"
-  );
+  return process.env.DEV_DEMO_MODE === "true";
 }
