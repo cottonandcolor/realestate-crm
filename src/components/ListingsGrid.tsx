@@ -101,7 +101,6 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
               style={{
                 padding: "0.3rem 0.75rem",
                 borderRadius: "6px",
-                border: "none",
                 cursor: "pointer",
                 fontWeight: activeType === t ? 700 : 400,
                 fontSize: "0.85rem",

@@ -13,10 +13,30 @@ interface UseSpeechInput {
   supported: boolean;
 }
 
+// Minimal types for the Web Speech API (not in all TS default libs)
+interface ISpeechRecognitionResult {
+  readonly isFinal: boolean;
+  readonly 0: { transcript: string };
+}
+interface ISpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: { length: number; [index: number]: ISpeechRecognitionResult };
+}
+interface ISpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  onresult: ((event: ISpeechRecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: (() => void) | null;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
+    SpeechRecognition: new () => ISpeechRecognition;
+    webkitSpeechRecognition: new () => ISpeechRecognition;
   }
 }
 
@@ -26,7 +46,7 @@ export function useSpeechInput(
 ): UseSpeechInput {
   const [state, setState] = useState<SpeechState>("idle");
   const [transcript, setTranscript] = useState("");
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
 
   const supported =
     typeof window !== "undefined" &&
@@ -51,7 +71,7 @@ export function useSpeechInput(
 
     let finalText = "";
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: ISpeechRecognitionEvent) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const r = event.results[i];

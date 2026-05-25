@@ -42,6 +42,7 @@ export async function POST(request: Request) {
     price_display: row.price_display ?? null,
     price_cents: row.price_cents ?? null,
     status: row.status ?? "active",
+    property_type: row.property_type ?? null,
     image_url: row.image_url ?? null,
     external_source: row.external_source,
     external_id: row.external_id,
