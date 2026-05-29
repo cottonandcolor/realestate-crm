@@ -20,29 +20,14 @@ export async function ensureUserOrg(
   supabase: SupabaseClient,
   orgName: string
 ): Promise<string> {
-  const existing = await getUserOrgId(supabase);
-  if (existing) return existing;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: org, error: orgError } = await supabase
-    .from("organizations")
-    .insert({ name: orgName })
-    .select("id")
-    .single();
-
-  if (orgError || !org) throw orgError ?? new Error("Failed to create organization");
-
-  const { error: memberError } = await supabase.from("org_members").insert({
-    org_id: org.id,
-    user_id: user.id,
-    role: "admin",
+  // Use a SECURITY DEFINER function to create org + add member atomically,
+  // bypassing the RLS chicken-and-egg problem (can't SELECT org until member exists).
+  const { data, error } = await supabase.rpc("create_org_and_join", {
+    org_name: orgName,
   });
 
-  if (memberError) throw memberError;
+  if (error) throw error;
+  if (!data) throw new Error("Failed to create organization");
 
-  return org.id;
+  return data as string;
 }
