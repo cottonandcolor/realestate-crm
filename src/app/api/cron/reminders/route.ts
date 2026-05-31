@@ -30,6 +30,9 @@ export async function GET(request: Request) {
     );
   }
 
+  // Support comma-separated list of recipients, e.g. "a@x.com, b@x.com"
+  const toList = toEmail.split(",").map((e) => e.trim()).filter(Boolean);
+
   // Use service-role key so we can query across all orgs
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,7 +99,7 @@ export async function GET(request: Request) {
   const resend = new Resend(resendKey);
   const { error: emailError } = await resend.emails.send({
     from: fromEmail,
-    to: toEmail,
+    to: toList,
     subject: `🔔 ${due.length} Contact Reminder${due.length > 1 ? "s" : ""} Due`,
     html,
   });
