@@ -118,7 +118,7 @@ export function DashboardTabs({
   leads,
   listings,
   tasks,
-  contacts,
+  contacts: initialContacts,
   calendarConnected,
   demoMode = false,
   demoBanner,
@@ -133,6 +133,8 @@ export function DashboardTabs({
 }) {
   // Sync active tab with URL hash so the back button + deep links work
   const [active, setActive] = useState<TabId>("overview");
+  // Lift contacts state here so it survives tab switches
+  const [contacts, setContacts] = useState<ContactWithLeads[]>(initialContacts);
 
   useEffect(() => {
     const hash = window.location.hash.replace("#", "") as TabId;
@@ -216,7 +218,7 @@ export function DashboardTabs({
 
         {/* ── Contacts ─────────────────────────────── */}
         {active === "contacts" && (
-          <ContactsPanel initialContacts={contacts} />
+          <ContactsPanel contacts={contacts} onContactsChange={setContacts} />
         )}
 
         {/* ── Listings ─────────────────────────────── */}

@@ -174,11 +174,12 @@ function ContactForm({
 }
 
 export function ContactsPanel({
-  initialContacts,
+  contacts,
+  onContactsChange,
 }: {
-  initialContacts: ContactWithLeads[];
+  contacts: ContactWithLeads[];
+  onContactsChange: (contacts: ContactWithLeads[]) => void;
 }) {
-  const [contacts, setContacts] = useState(initialContacts);
   const [search, setSearch] = useState("");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ContactWithLeads | null>(null);
@@ -204,7 +205,7 @@ export function ContactsPanel({
     });
     if (res.ok) {
       const created = await res.json();
-      setContacts((prev) => [{ ...created, leads: [] }, ...prev]);
+      onContactsChange([{ ...created, leads: [] }, ...contacts]);
       setAdding(false);
       setStatus("Contact added.");
     } else {
@@ -221,9 +222,7 @@ export function ContactsPanel({
     });
     if (res.ok) {
       const updated = await res.json();
-      setContacts((prev) =>
-        prev.map((c) => (c.id === editing.id ? { ...c, ...updated } : c))
-      );
+      onContactsChange(contacts.map((c) => (c.id === editing.id ? { ...c, ...updated } : c)));
       setEditing(null);
       setStatus("Contact updated.");
     } else {
@@ -235,7 +234,7 @@ export function ContactsPanel({
     if (!confirm("Delete this contact? Associated leads will be unlinked.")) return;
     const res = await fetch(`/api/contacts/${id}`, { method: "DELETE" });
     if (res.ok) {
-      setContacts((prev) => prev.filter((c) => c.id !== id));
+      onContactsChange(contacts.filter((c) => c.id !== id));
       setStatus("Contact deleted.");
     }
   }
