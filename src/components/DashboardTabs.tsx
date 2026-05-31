@@ -11,6 +11,7 @@ import { CalendarConnect } from "./CalendarConnect";
 import { ListingImport } from "./ListingImport";
 import { ExportPanel } from "./ExportPanel";
 import { ActivitiesTab } from "./ActivitiesTab";
+import { useReminderNotifications } from "@/hooks/useReminderNotifications";
 
 type ContactWithLeads = Contact & { leads?: Pick<Lead, "id" | "name" | "stage">[] };
 
@@ -135,6 +136,17 @@ export function DashboardTabs({
   const [active, setActive] = useState<TabId>("overview");
   // Lift contacts state here so it survives tab switches
   const [contacts, setContacts] = useState<ContactWithLeads[]>(initialContacts);
+  // Dismissible login-time reminder alert
+  const [reminderAlert, setReminderAlert] = useState(true);
+
+  // Browser push notifications for due reminders
+  useReminderNotifications(contacts);
+
+  // Contacts with a due or overdue reminder (for the login banner)
+  const dueReminders = contacts.filter((c) => {
+    if (!c.reminder_at) return false;
+    return new Date(c.reminder_at) <= new Date();
+  }).sort((a, b) => new Date(a.reminder_at!).getTime() - new Date(b.reminder_at!).getTime());
 
   useEffect(() => {
     const hash = window.location.hash.replace("#", "") as TabId;
@@ -163,6 +175,45 @@ export function DashboardTabs({
         {demoBanner && (
           <div className="glass" style={{ marginBottom: "1.25rem", padding: "0.65rem 1rem", fontSize: "0.88rem" }}>
             {demoBanner}
+          </div>
+        )}
+
+        {/* ── Due / overdue reminders alert banner ── */}
+        {reminderAlert && dueReminders.length > 0 && (
+          <div style={{
+            marginBottom: "1.25rem", padding: "0.85rem 1rem",
+            background: "rgba(229,62,62,0.15)", border: "1px solid #fc8181",
+            borderRadius: "0.75rem", display: "flex", gap: "0.75rem", alignItems: "flex-start",
+          }}>
+            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>🔔</span>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: "0 0 0.4rem", fontWeight: 700, color: "#fc8181", fontSize: "0.9rem" }}>
+                {dueReminders.length} contact reminder{dueReminders.length > 1 ? "s" : ""} due
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {dueReminders.slice(0, 5).map((c) => {
+                  const name = [c.first_name, c.last_name].filter(Boolean).join(" ");
+                  const dt = new Date(c.reminder_at!);
+                  return (
+                    <p key={c.id} style={{ margin: 0, fontSize: "0.83rem" }}>
+                      <strong>{name}</strong>
+                      {" — "}
+                      {dt.toLocaleDateString()} {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {c.reminder_note && <span style={{ opacity: 0.75 }}> · {c.reminder_note}</span>}
+                    </p>
+                  );
+                })}
+                {dueReminders.length > 5 && (
+                  <p style={{ margin: 0, fontSize: "0.8rem", opacity: 0.7 }}>+{dueReminders.length - 5} more — go to Contacts tab</p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReminderAlert(false)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#fc8181", fontSize: "1.2rem", lineHeight: 1, flexShrink: 0, padding: 0 }}
+              title="Dismiss"
+            >×</button>
           </div>
         )}
 
