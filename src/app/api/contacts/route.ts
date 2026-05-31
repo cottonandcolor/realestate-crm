@@ -4,10 +4,22 @@ import { getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { getDemoStore } from "@/lib/demo/store";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const q = searchParams.get("q")?.trim() ?? "";
+
   const demoUser = await getDemoUserFromCookies();
   if (demoUser) {
-    return NextResponse.json(getDemoStore().contacts);
+    const { contacts } = getDemoStore();
+    if (!q) return NextResponse.json(contacts);
+    const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const fields = (c: typeof contacts[0]) => [
+      c.first_name, c.last_name, c.email, c.company, c.job_title, c.notes,
+      c.phone, c.address_city, c.address_region, c.address_street, ...(c.tags ?? [])
+    ].map((v) => (v ?? "").toLowerCase());
+    return NextResponse.json(contacts.filter((c) =>
+      words.some((word) => fields(c).some((f) => f.includes(word)))
+    ));
   }
 
   const supabase = await createClient();
@@ -17,12 +29,32 @@ export async function GET() {
   const orgId = await getUserOrgId(supabase);
   if (!orgId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("contacts")
     .select("*")
     .eq("org_id", orgId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(2000);
 
+  if (q) {
+    // Split into words — any word that matches any field is returned
+    const words = q.trim().split(/\s+/).filter(Boolean);
+    const conditions = words.flatMap((word) => [
+      `first_name.ilike.%${word}%`,
+      `last_name.ilike.%${word}%`,
+      `email.ilike.%${word}%`,
+      `phone.ilike.%${word}%`,
+      `company.ilike.%${word}%`,
+      `job_title.ilike.%${word}%`,
+      `notes.ilike.%${word}%`,
+      `address_city.ilike.%${word}%`,
+      `address_region.ilike.%${word}%`,
+      `address_street.ilike.%${word}%`,
+    ]);
+    query = query.or(conditions.join(","));
+  }
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);
 }

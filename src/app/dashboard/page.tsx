@@ -68,7 +68,7 @@ export default async function DashboardPage() {
     supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-    supabase.from("contacts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("contacts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(2000),
   ]);
 
   // Attach leads to contacts manually (avoids relational FK schema cache issues)

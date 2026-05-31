@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { Contact, Lead } from "@/lib/types/database";
 import { ActivityFeed } from "./ActivityFeed";
 import { MicButton } from "./MicButton";
@@ -219,7 +219,7 @@ function ContactForm({
 }
 
 export function ContactsPanel({
-  contacts,
+  contacts: initialContacts,
   onContactsChange,
 }: {
   contacts: ContactWithLeads[];
@@ -227,37 +227,41 @@ export function ContactsPanel({
 }) {
   const [search, setSearch] = useState("");
   const [activeLabel, setActiveLabel] = useState("");
+  const [searchResults, setSearchResults] = useState<ContactWithLeads[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ContactWithLeads | null>(null);
   const [status, setStatus] = useState("");
   const [voicePrefill, setVoicePrefill] = useState<Partial<Contact> | null>(null);
 
-  // All unique labels sorted
+  // Server-side search with 400ms debounce
+  const runSearch = useCallback(async (q: string) => {
+    if (!q.trim()) { setSearchResults(null); return; }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/contacts?q=${encodeURIComponent(q.trim())}`);
+      if (res.ok) setSearchResults(await res.json());
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => runSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search, runSearch]);
+
+  // Base list: server search results OR all loaded contacts
+  const baseList = searchResults ?? initialContacts;
+
+  // All unique labels from all loaded contacts (for chips)
   const allLabels = Array.from(
-    new Set(contacts.flatMap((c) => c.tags ?? []))
+    new Set(initialContacts.flatMap((c) => c.tags ?? []))
   ).sort();
 
-  const filtered = contacts.filter((c) => {
-    // Label filter
-    if (activeLabel && !(c.tags ?? []).includes(activeLabel)) return false;
-    // Text search — name, email, phone, company, tags, notes, city, job title
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        c.first_name.toLowerCase().includes(q) ||
-        (c.last_name ?? "").toLowerCase().includes(q) ||
-        (c.email ?? "").toLowerCase().includes(q) ||
-        (c.company ?? "").toLowerCase().includes(q) ||
-        (c.job_title ?? "").toLowerCase().includes(q) ||
-        (c.phone ?? "").includes(q) ||
-        (c.notes ?? "").toLowerCase().includes(q) ||
-        (c.address_city ?? "").toLowerCase().includes(q) ||
-        (c.address_region ?? "").toLowerCase().includes(q) ||
-        (c.tags ?? []).some((t) => t.toLowerCase().includes(q))
-      );
-    }
-    return true;
-  });
+  const filtered = activeLabel
+    ? baseList.filter((c) => (c.tags ?? []).includes(activeLabel))
+    : baseList;
 
   async function handleAdd(data: Partial<Contact>) {
     setStatus("");
@@ -268,7 +272,7 @@ export function ContactsPanel({
     });
     if (res.ok) {
       const created = await res.json();
-      onContactsChange([{ ...created, leads: [] }, ...contacts]);
+      onContactsChange([{ ...created, leads: [] }, ...initialContacts]);
       setAdding(false);
       setStatus("Contact added.");
     } else {
@@ -285,7 +289,7 @@ export function ContactsPanel({
     });
     if (res.ok) {
       const updated = await res.json();
-      onContactsChange(contacts.map((c) => (c.id === editing.id ? { ...c, ...updated } : c)));
+      onContactsChange(initialContacts.map((c) => (c.id === editing.id ? { ...c, ...updated } : c)));
       setEditing(null);
       setStatus("Contact updated.");
     } else {
@@ -297,7 +301,7 @@ export function ContactsPanel({
     if (!confirm("Delete this contact? Associated leads will be unlinked.")) return;
     const res = await fetch(`/api/contacts/${id}`, { method: "DELETE" });
     if (res.ok) {
-      onContactsChange(contacts.filter((c) => c.id !== id));
+      onContactsChange(initialContacts.filter((c) => c.id !== id));
       setStatus("Contact deleted.");
     }
   }
@@ -307,7 +311,7 @@ export function ContactsPanel({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
         <h2 style={{ margin: 0 }}>Contacts
           <span style={{ fontSize: "0.85rem", fontWeight: 400, opacity: 0.6, marginLeft: "0.5rem" }}>
-            {filtered.length !== contacts.length ? `${filtered.length} of ${contacts.length}` : contacts.length}
+            {filtered.length !== initialContacts.length ? `${filtered.length} of ${initialContacts.length}` : initialContacts.length}
           </span>
         </h2>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -326,14 +330,26 @@ export function ContactsPanel({
         </div>
       </div>
 
-      <input
-        type="text"
-        className="search"
-        placeholder="Search by name, notes, label, city, phone…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ marginBottom: "0.5rem" }}
-      />
+      <div style={{ position: "relative", marginBottom: "0.5rem" }}>
+        <input
+          type="text"
+          className="search"
+          placeholder="Search anything — name, notes, label, city, phone…"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); if (!e.target.value.trim()) setSearchResults(null); }}
+          style={{ width: "100%" }}
+        />
+        {searching && (
+          <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", opacity: 0.5, fontSize: "0.8rem" }}>
+            searching…
+          </span>
+        )}
+        {search && !searching && searchResults !== null && (
+          <span style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", opacity: 0.5, fontSize: "0.8rem" }}>
+            {filtered.length} found
+          </span>
+        )}
+      </div>
 
       {/* Label filter chips */}
       {allLabels.length > 0 && (
