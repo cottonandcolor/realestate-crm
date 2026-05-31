@@ -107,12 +107,23 @@ export interface Listing {
   updated_at: string;
 }
 
+export interface Project {
+  id: string;
+  org_id: string;
+  name: string;
+  notes: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Task {
   id: string;
   org_id: string;
   title: string;
   status: TaskStatus;
   due_at: string | null;
+  project_id: string | null;
   lead_id: string | null;
   listing_id: string | null;
   assigned_agent_id: string | null;

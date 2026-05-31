@@ -1,4 +1,4 @@
-import type { Activity, Contact, Lead, Listing, Task } from "@/lib/types/database";
+import type { Activity, Contact, Lead, Listing, Project, Task } from "@/lib/types/database";
 import { DEMO_USER } from "./constants";
 
 const orgId = "00000000-0000-4000-8000-000000000010";
@@ -279,14 +279,43 @@ export function createSeedActivities(): Activity[] {
   ];
 }
 
+export const SEED_PROJECT_IDS = {
+  johnson: "p0000000-0000-4000-8000-000000000001",
+  buyer: "p0000000-0000-4000-8000-000000000002",
+};
+
+export function createSeedProjects(): Project[] {
+  return [
+    {
+      id: SEED_PROJECT_IDS.johnson,
+      org_id: orgId,
+      name: "Johnson Rd Listing",
+      notes: "Listing prep and marketing",
+      sort_order: 0,
+      created_at: ts(-5),
+      updated_at: ts(-1),
+    },
+    {
+      id: SEED_PROJECT_IDS.buyer,
+      org_id: orgId,
+      name: "Smith Buyer Search",
+      notes: "Active buyer — downtown condos",
+      sort_order: 1,
+      created_at: ts(-4),
+      updated_at: ts(-1),
+    },
+  ];
+}
+
 export function createSeedTasks(): Task[] {
   return [
     {
       id: "30000000-0000-4000-8000-000000000001",
       org_id: orgId,
-      title: "Call new leads",
+      title: "Order yard sign",
       status: "todo",
       due_at: null,
+      project_id: SEED_PROJECT_IDS.johnson,
       lead_id: null,
       listing_id: null,
       assigned_agent_id: DEMO_USER.id,
@@ -297,9 +326,10 @@ export function createSeedTasks(): Task[] {
     {
       id: "30000000-0000-4000-8000-000000000002",
       org_id: orgId,
-      title: "Schedule open house",
+      title: "Schedule photographer",
       status: "todo",
       due_at: ts(2),
+      project_id: SEED_PROJECT_IDS.johnson,
       lead_id: null,
       listing_id: null,
       assigned_agent_id: null,
@@ -310,9 +340,10 @@ export function createSeedTasks(): Task[] {
     {
       id: "30000000-0000-4000-8000-000000000003",
       org_id: orgId,
-      title: "Prepare contract for 1401 Elm",
+      title: "Send comps to buyer",
       status: "inprogress",
       due_at: ts(3),
+      project_id: SEED_PROJECT_IDS.buyer,
       lead_id: null,
       listing_id: null,
       assigned_agent_id: DEMO_USER.id,
@@ -323,9 +354,10 @@ export function createSeedTasks(): Task[] {
     {
       id: "30000000-0000-4000-8000-000000000004",
       org_id: orgId,
-      title: "Update MLS listings",
+      title: "Post listing to MLS",
       status: "done",
       due_at: null,
+      project_id: SEED_PROJECT_IDS.johnson,
       lead_id: null,
       listing_id: null,
       assigned_agent_id: null,

@@ -1,22 +1,24 @@
-import type { Activity, ActivityType, Contact, Lead, Listing, Task, TaskStatus } from "@/lib/types/database";
-import { createSeedLeads, createSeedListings, createSeedTasks, createSeedContacts, createSeedActivities } from "./data";
+import type { Activity, ActivityType, Contact, Lead, Listing, Project, Task, TaskStatus } from "@/lib/types/database";
+import { createSeedLeads, createSeedListings, createSeedTasks, createSeedContacts, createSeedActivities, createSeedProjects } from "./data";
 import { DEMO_USER } from "./constants";
 
 const orgId = "00000000-0000-4000-8000-000000000010";
 
 let leads = createSeedLeads();
 let listings = createSeedListings();
+let projects = createSeedProjects();
 let tasks = createSeedTasks();
 let contacts = createSeedContacts();
 let activities = createSeedActivities();
 
 export function getDemoStore() {
-  return { leads, listings, tasks, contacts, activities };
+  return { leads, listings, projects, tasks, contacts, activities };
 }
 
 export function resetDemoStore() {
   leads = createSeedLeads();
   listings = createSeedListings();
+  projects = createSeedProjects();
   tasks = createSeedTasks();
   contacts = createSeedContacts();
   activities = createSeedActivities();
@@ -121,7 +123,7 @@ export function deleteDemoContact(contactId: string) {
 }
 
 export function addDemoTask(
-  data: { title: string; status?: TaskStatus; due_at?: string | null }
+  data: { title: string; status?: TaskStatus; due_at?: string | null; project_id?: string | null }
 ): Task {
   const now = new Date().toISOString();
   const task: Task = {
@@ -130,6 +132,7 @@ export function addDemoTask(
     title: data.title,
     status: data.status ?? "todo",
     due_at: data.due_at ?? null,
+    project_id: data.project_id ?? null,
     lead_id: null,
     listing_id: null,
     assigned_agent_id: null,
@@ -139,6 +142,59 @@ export function addDemoTask(
   };
   tasks = [task, ...tasks];
   return task;
+}
+
+export function updateDemoTask(
+  taskId: string,
+  data: Partial<Pick<Task, "title" | "status" | "due_at" | "project_id">>
+): Task | null {
+  const task = tasks.find((t) => t.id === taskId);
+  if (!task) return null;
+  if (data.title !== undefined) task.title = data.title;
+  if (data.status !== undefined) task.status = data.status;
+  if (data.due_at !== undefined) task.due_at = data.due_at;
+  if (data.project_id !== undefined) task.project_id = data.project_id;
+  task.updated_at = new Date().toISOString();
+  return task;
+}
+
+export function deleteDemoTask(taskId: string) {
+  tasks = tasks.filter((t) => t.id !== taskId);
+}
+
+export function addDemoProject(data: { name: string; notes?: string | null }): Project {
+  const now = new Date().toISOString();
+  const project: Project = {
+    id: crypto.randomUUID(),
+    org_id: orgId,
+    name: data.name,
+    notes: data.notes ?? null,
+    sort_order: projects.length,
+    created_at: now,
+    updated_at: now,
+  };
+  projects = [...projects, project];
+  return project;
+}
+
+export function updateDemoProject(
+  projectId: string,
+  data: Partial<Pick<Project, "name" | "notes" | "sort_order">>
+): Project | null {
+  const project = projects.find((p) => p.id === projectId);
+  if (!project) return null;
+  if (data.name !== undefined) project.name = data.name;
+  if (data.notes !== undefined) project.notes = data.notes;
+  if (data.sort_order !== undefined) project.sort_order = data.sort_order;
+  project.updated_at = new Date().toISOString();
+  return project;
+}
+
+export function deleteDemoProject(projectId: string) {
+  projects = projects.filter((p) => p.id !== projectId);
+  tasks = tasks.map((t) =>
+    t.project_id === projectId ? { ...t, project_id: null } : t
+  );
 }
 
 export function linkDemoLeadToContact(leadId: string, contactId: string): boolean {

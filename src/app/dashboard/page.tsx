@@ -10,7 +10,7 @@ export default async function DashboardPage() {
   const demoUser = await getDemoUserFromCookies();
 
   if (demoUser) {
-    const { leads, listings, tasks, contacts } = getDemoStore();
+    const { leads, listings, projects, tasks, contacts } = getDemoStore();
     const contactsWithLeads = contacts.map((c) => ({
       ...c,
       leads: leads
@@ -25,6 +25,7 @@ export default async function DashboardPage() {
           leads={leads}
           listings={listings}
           tasks={tasks}
+          projects={projects}
           contacts={contactsWithLeads}
           calendarConnected={false}
           demoMode
@@ -53,21 +54,24 @@ export default async function DashboardPage() {
     { data: leads },
     { data: listings },
     { data: tasks },
+    { data: projects },
     { data: googleToken },
   ] = await Promise.all([
     supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("projects").select("*").eq("org_id", orgId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("google_tokens").select("user_id").eq("user_id", user.id).maybeSingle(),
   ]);
 
   const hasData = (leads?.length ?? 0) > 0 || (listings?.length ?? 0) > 0;
   if (!hasData) await seedDemoData(supabase, orgId, user.id);
 
-  const [leadsFresh, listingsFresh, tasksFresh, { data: contactsFresh }] = await Promise.all([
+  const [leadsFresh, listingsFresh, tasksFresh, projectsFresh, { data: contactsFresh }] = await Promise.all([
     supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("projects").select("*").eq("org_id", orgId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("contacts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(2000),
   ]);
 
@@ -88,6 +92,7 @@ export default async function DashboardPage() {
         leads={leadsFresh.data ?? []}
         listings={listingsFresh.data ?? []}
         tasks={tasksFresh.data ?? []}
+        projects={projectsFresh.data ?? projects ?? []}
         contacts={contactsWithLeads}
         calendarConnected={!!googleToken}
       />

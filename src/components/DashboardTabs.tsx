@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Contact, Lead, Listing, Task } from "@/lib/types/database";
+import type { Contact, Lead, Listing, Project, Task } from "@/lib/types/database";
 import { DashboardCards } from "./DashboardCards";
 import { LeadsTable } from "./LeadsTable";
 import { ListingsGrid } from "./ListingsGrid";
-import { KanbanBoard } from "./KanbanBoard";
+import { ProjectTasksPanel } from "./ProjectTasksPanel";
 import { ContactsPanel } from "./ContactsPanel";
 import { CalendarConnect } from "./CalendarConnect";
 import { ListingImport } from "./ListingImport";
@@ -119,6 +119,7 @@ export function DashboardTabs({
   leads,
   listings,
   tasks,
+  projects,
   contacts: initialContacts,
   calendarConnected,
   demoMode = false,
@@ -127,6 +128,7 @@ export function DashboardTabs({
   leads: Lead[];
   listings: Listing[];
   tasks: Task[];
+  projects: Project[];
   contacts: ContactWithLeads[];
   calendarConnected: boolean;
   demoMode?: boolean;
@@ -279,7 +281,7 @@ export function DashboardTabs({
 
         {/* ── Tasks ────────────────────────────────── */}
         {active === "tasks" && (
-          <KanbanBoard tasks={tasks} demoMode={demoMode} />
+          <ProjectTasksPanel projects={projects} tasks={tasks} demoMode={demoMode} />
         )}
 
         {/* ── Activity ─────────────────────────────── */}

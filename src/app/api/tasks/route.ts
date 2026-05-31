@@ -9,13 +9,19 @@ export async function POST(request: Request) {
     title: string;
     status?: string;
     due_at?: string | null;
+    project_id?: string | null;
     lead_id?: string;
     listing_id?: string;
   };
 
   const demoUser = await getDemoUserFromCookies();
   if (demoUser) {
-    const task = addDemoTask({ title: body.title, due_at: body.due_at });
+    const task = addDemoTask({
+      title: body.title,
+      status: body.status as import("@/lib/types/database").TaskStatus | undefined,
+      due_at: body.due_at,
+      project_id: body.project_id,
+    });
     return NextResponse.json(task, { status: 201 });
   }
 
@@ -33,6 +39,7 @@ export async function POST(request: Request) {
       title: body.title,
       status: body.status ?? "todo",
       due_at: body.due_at ?? null,
+      project_id: body.project_id ?? null,
       lead_id: body.lead_id ?? null,
       listing_id: body.listing_id ?? null,
       assigned_agent_id: user.id,
