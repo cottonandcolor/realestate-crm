@@ -3,14 +3,22 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { getDemoStore } from "@/lib/demo/store";
+import { findDuplicateByName } from "@/lib/contacts/nameMatch";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim() ?? "";
+  const duplicateCheck = searchParams.get("duplicate") === "1";
+  const dupFirst = searchParams.get("first_name")?.trim() ?? "";
+  const dupLast = searchParams.get("last_name")?.trim() ?? "";
 
   const demoUser = await getDemoUserFromCookies();
   if (demoUser) {
     const { contacts } = getDemoStore();
+    if (duplicateCheck && dupFirst) {
+      const match = findDuplicateByName(contacts, dupFirst, dupLast);
+      return NextResponse.json(match ?? null);
+    }
     if (!q) return NextResponse.json(contacts);
     const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const fields = (c: typeof contacts[0]) => [
@@ -28,6 +36,17 @@ export async function GET(request: Request) {
 
   const orgId = await getUserOrgId(supabase);
   if (!orgId) return NextResponse.json({ error: "No organization" }, { status: 400 });
+
+  if (duplicateCheck && dupFirst) {
+    const { data: candidates, error: dupErr } = await supabase
+      .from("contacts")
+      .select("id, first_name, last_name, email, phone, company, tags")
+      .eq("org_id", orgId)
+      .ilike("first_name", dupFirst);
+    if (dupErr) return NextResponse.json({ error: dupErr.message }, { status: 500 });
+    const match = findDuplicateByName(candidates ?? [], dupFirst, dupLast);
+    return NextResponse.json(match ?? null);
+  }
 
   let query = supabase
     .from("contacts")
@@ -64,7 +83,31 @@ export async function POST(request: Request) {
   const body = await request.json();
 
   if (demoUser) {
-    const { addDemoContact } = await import("@/lib/demo/store");
+    const { getDemoStore, addDemoContact } = await import("@/lib/demo/store");
+    const firstName = (body.first_name as string)?.trim();
+    const lastName = (body.last_name as string | null)?.trim() ?? "";
+    if (firstName) {
+      const { contacts: demoContacts } = getDemoStore();
+      const existing = findDuplicateByName(demoContacts, firstName, lastName);
+      if (existing) {
+        return NextResponse.json(
+          {
+            error: "duplicate",
+            message: "A contact with this name already exists.",
+            existing: {
+              id: existing.id,
+              first_name: existing.first_name,
+              last_name: existing.last_name,
+              email: existing.email,
+              phone: existing.phone,
+              company: existing.company,
+              tags: existing.tags,
+            },
+          },
+          { status: 409 }
+        );
+      }
+    }
     const contact = addDemoContact(demoUser.id, body);
     return NextResponse.json(contact, { status: 201 });
   }
@@ -75,6 +118,27 @@ export async function POST(request: Request) {
 
   const orgId = await getUserOrgId(supabase);
   if (!orgId) return NextResponse.json({ error: "No organization" }, { status: 400 });
+
+  const firstName = (body.first_name as string)?.trim();
+  const lastName = (body.last_name as string | null)?.trim() ?? "";
+  if (firstName) {
+    const { data: candidates } = await supabase
+      .from("contacts")
+      .select("id, first_name, last_name")
+      .eq("org_id", orgId)
+      .ilike("first_name", firstName);
+    const existing = findDuplicateByName(candidates ?? [], firstName, lastName);
+    if (existing) {
+      return NextResponse.json(
+        {
+          error: "duplicate",
+          message: "A contact with this name already exists.",
+          existing,
+        },
+        { status: 409 }
+      );
+    }
+  }
 
   const { data, error } = await supabase
     .from("contacts")

@@ -5,6 +5,7 @@ import type { Contact, Lead } from "@/lib/types/database";
 import { ActivityFeed } from "./ActivityFeed";
 import { MicButton } from "./MicButton";
 import { parseContactFromSpeech } from "@/lib/voice/parseContact";
+import { findDuplicateByName } from "@/lib/contacts/nameMatch";
 
 type ContactWithLeads = Contact & { leads?: Pick<Lead, "id" | "name" | "stage">[] };
 
@@ -210,15 +211,59 @@ function ContactForm({
   onSave,
   onCancel,
   availableGroups = [],
+  existingContacts = [],
+  onEditExisting,
 }: {
   initial?: Partial<Contact>;
   onSave: (data: Partial<Contact>) => void;
   onCancel: () => void;
   availableGroups?: string[];
+  existingContacts?: ContactWithLeads[];
+  onEditExisting?: (c: ContactWithLeads) => void;
 }) {
   const [form, setForm] = useState<Partial<Contact>>(initial ?? {});
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [newGroup, setNewGroup] = useState("");
+  const [serverDuplicate, setServerDuplicate] = useState<ContactWithLeads | null>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+
+  const isNewContact = !initial?.id;
+  const localDuplicate = isNewContact && form.first_name
+    ? findDuplicateByName(
+        existingContacts,
+        String(form.first_name),
+        (form.last_name as string) ?? null
+      )
+    : undefined;
+  const duplicate = localDuplicate ?? serverDuplicate ?? undefined;
+
+  // Check full database when name fields change (catches contacts not loaded in the list)
+  useEffect(() => {
+    if (!isNewContact || !form.first_name?.trim()) {
+      setServerDuplicate(null);
+      return;
+    }
+    const first = String(form.first_name).trim();
+    const last = String(form.last_name ?? "").trim();
+    const t = setTimeout(async () => {
+      setCheckingDuplicate(true);
+      try {
+        const params = new URLSearchParams({
+          duplicate: "1",
+          first_name: first,
+          last_name: last,
+        });
+        const res = await fetch(`/api/contacts?${params}`);
+        if (res.ok) {
+          const match = await res.json();
+          setServerDuplicate(match?.id ? (match as ContactWithLeads) : null);
+        }
+      } finally {
+        setCheckingDuplicate(false);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [isNewContact, form.first_name, form.last_name]);
   function field(key: keyof Contact) {
     return {
       value: (form[key] as string) ?? "",
@@ -239,6 +284,48 @@ function ContactForm({
   return (
     <div className="glass" style={{ padding: "1.25rem", marginBottom: "1rem" }}>
       <h3 style={{ marginBottom: "0.75rem" }}>{initial?.id ? "Edit Contact" : "Add Contact"}</h3>
+
+      {/* Duplicate warning */}
+      {isNewContact && form.first_name?.trim() && checkingDuplicate && !duplicate && (
+        <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.5 }}>Checking for duplicates…</p>
+      )}
+      {duplicate && (
+        <div style={{
+          marginBottom: "0.75rem", padding: "0.75rem 1rem",
+          background: "rgba(251,191,36,0.15)", border: "1px solid #f6c90e",
+          borderRadius: "0.5rem", display: "flex", flexDirection: "column", gap: "0.5rem",
+        }}>
+          <p style={{ margin: 0, fontSize: "0.85rem", color: "#f6c90e" }}>
+            ⚠ A contact named{" "}
+            <strong>
+              {[duplicate.first_name, duplicate.last_name].filter(Boolean).join(" ")}
+            </strong>{" "}
+            already exists.
+            {duplicate.email && <> Email: {duplicate.email}.</>}
+            {duplicate.phone && <> Phone: {duplicate.phone}.</>}
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            {onEditExisting && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                style={{ fontSize: "0.8rem" }}
+                onClick={() => {
+                  const full =
+                    existingContacts.find((c) => c.id === duplicate.id) ?? duplicate;
+                  onCancel();
+                  onEditExisting(full as ContactWithLeads);
+                }}
+              >
+                Edit existing contact
+              </button>
+            )}
+            <span style={{ fontSize: "0.78rem", opacity: 0.7, alignSelf: "center" }}>
+              Save is disabled until you change the name or edit the existing contact.
+            </span>
+          </div>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
 
         {section("Name")}
@@ -426,8 +513,9 @@ function ContactForm({
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => form.first_name && onSave(form)}
-          disabled={!form.first_name}
+          onClick={() => form.first_name && !duplicate && onSave(form)}
+          disabled={!form.first_name || !!duplicate}
+          title={duplicate ? "A contact with this name already exists" : undefined}
         >
           Save
         </button>
@@ -484,6 +572,19 @@ export function ContactsPanel({
 
   async function handleAdd(data: Partial<Contact>) {
     setStatus("");
+    const localDup = data.first_name
+      ? findDuplicateByName(
+          initialContacts,
+          String(data.first_name),
+          (data.last_name as string) ?? null
+        )
+      : undefined;
+    if (localDup) {
+      setStatus("A contact with this name already exists. Use Edit existing contact.");
+      setAdding(false);
+      setEditing(localDup);
+      return;
+    }
     const res = await fetch("/api/contacts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -494,6 +595,18 @@ export function ContactsPanel({
       onContactsChange([{ ...created, leads: [] }, ...initialContacts]);
       setAdding(false);
       setStatus("Contact added.");
+    } else if (res.status === 409) {
+      const body = await res.json();
+      const existing = body.existing as Contact | undefined;
+      setStatus("A contact with this name already exists.");
+      if (existing) {
+        const full = initialContacts.find((c) => c.id === existing.id) ?? {
+          ...existing,
+          leads: [],
+        };
+        setAdding(false);
+        setEditing(full as ContactWithLeads);
+      }
     } else {
       setStatus("Failed to add contact.");
     }
@@ -635,10 +748,17 @@ export function ContactsPanel({
           onSave={handleAdd}
           onCancel={() => { setAdding(false); setVoicePrefill(null); }}
           availableGroups={allLabels}
+          existingContacts={initialContacts}
+          onEditExisting={(c) => { setAdding(false); setEditing(c); }}
         />
       )}
       {editing && (
-        <ContactForm initial={editing} onSave={handleEdit} onCancel={() => setEditing(null)} availableGroups={allLabels} />
+        <ContactForm
+          initial={editing}
+          onSave={handleEdit}
+          onCancel={() => setEditing(null)}
+          availableGroups={allLabels}
+        />
       )}
 
       {status && <p className="status-msg" style={{ marginBottom: "0.75rem" }}>{status}</p>}
