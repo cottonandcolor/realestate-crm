@@ -61,6 +61,7 @@ export interface Contact {
   website: string | null;
   reminder_at: string | null;
   reminder_note: string | null;
+  reminder_notified: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;

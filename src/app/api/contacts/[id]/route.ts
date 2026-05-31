@@ -48,6 +48,10 @@ export async function PATCH(_req: Request, { params }: { params: Promise<{ id: s
   for (const key of allowed) {
     if (key in body) patch[key] = body[key] ?? null;
   }
+  // Reset notification flag whenever the reminder date changes so the email fires again
+  if ("reminder_at" in body) {
+    patch.reminder_notified = false;
+  }
 
   const demoUser = await getDemoUserFromCookies();
   if (demoUser) {

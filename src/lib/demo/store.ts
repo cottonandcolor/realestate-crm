@@ -94,6 +94,7 @@ export function addDemoContact(
     website: data.website ?? null,
     reminder_at: data.reminder_at ?? null,
     reminder_note: data.reminder_note ?? null,
+    reminder_notified: false,
     created_by: createdBy ?? DEMO_USER.id,
     created_at: now,
     updated_at: now,
