@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data, error } = await supabase
     .from("contacts")
-    .select("*, leads(id, name, stage, email, phone, created_at)")
+    .select("*")
     .eq("id", id)
     .eq("org_id", orgId)
     .single();
@@ -37,9 +37,20 @@ export async function PATCH(_req: Request, { params }: { params: Promise<{ id: s
   const { id } = await params;
   const body = await _req.json();
 
+  // Only allow updating these fields — strip metadata/relational fields
+  const allowed = [
+    "first_name","last_name","email","phone","company","job_title",
+    "notes","tags","birthday","relationship","website",
+    "address_street","address_city","address_region","address_postal_code","address_country",
+  ];
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const key of allowed) {
+    if (key in body) patch[key] = body[key] ?? null;
+  }
+
   const demoUser = await getDemoUserFromCookies();
   if (demoUser) {
-    const updated = updateDemoContact(id, body);
+    const updated = updateDemoContact(id, patch);
     if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.json(updated);
   }
@@ -53,7 +64,7 @@ export async function PATCH(_req: Request, { params }: { params: Promise<{ id: s
 
   const { data, error } = await supabase
     .from("contacts")
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq("id", id)
     .eq("org_id", orgId)
     .select()
