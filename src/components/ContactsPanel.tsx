@@ -456,37 +456,23 @@ export function ContactsPanel({
         )}
       </div>
 
-      {/* Label filter chips */}
+      {/* Group filter — single picklist */}
       {allLabels.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginBottom: "1rem" }}>
-          <button
-            type="button"
-            onClick={() => setActiveLabel("")}
-            style={{
-              fontSize: "0.75rem", padding: "0.2rem 0.65rem", borderRadius: "999px", cursor: "pointer",
-              border: "1px solid var(--color-border)",
-              background: activeLabel === "" ? "var(--indigo-500)" : "transparent",
-              color: activeLabel === "" ? "#fff" : "var(--color-text-muted)",
-            }}
-          >All ({initialContacts.length})</button>
-          {allLabels.map((label) => {
-            const count = initialContacts.filter((c) => (c.tags ?? []).includes(label)).length;
-            const active = activeLabel === label;
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setActiveLabel(active ? "" : label)}
-                style={{
-                  fontSize: "0.75rem", padding: "0.2rem 0.65rem", borderRadius: "999px", cursor: "pointer",
-                  border: "1px solid var(--color-border)",
-                  background: active ? "var(--indigo-500)" : "transparent",
-                  color: active ? "#fff" : "var(--color-text-muted)",
-                  whiteSpace: "nowrap",
-                }}
-              >{label} ({count})</button>
-            );
-          })}
+        <div style={{ marginBottom: "1rem" }}>
+          <select
+            className="input"
+            style={{ maxWidth: "none", width: "100%", cursor: "pointer" }}
+            value={activeLabel}
+            onChange={(e) => setActiveLabel(e.target.value)}
+          >
+            <option value="">All ({initialContacts.length})</option>
+            {allLabels.map((label) => {
+              const count = initialContacts.filter((c) => (c.tags ?? []).includes(label)).length;
+              return (
+                <option key={label} value={label}>{label} ({count})</option>
+              );
+            })}
+          </select>
         </div>
       )}
 
