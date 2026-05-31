@@ -363,9 +363,9 @@ export function ContactsPanel({
               background: activeLabel === "" ? "var(--indigo-500)" : "transparent",
               color: activeLabel === "" ? "#fff" : "var(--color-text-muted)",
             }}
-          >All ({contacts.length})</button>
+          >All ({initialContacts.length})</button>
           {allLabels.map((label) => {
-            const count = contacts.filter((c) => (c.tags ?? []).includes(label)).length;
+            const count = initialContacts.filter((c) => (c.tags ?? []).includes(label)).length;
             const active = activeLabel === label;
             return (
               <button
