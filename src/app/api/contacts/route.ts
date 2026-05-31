@@ -96,6 +96,8 @@ export async function POST(request: Request) {
       address_postal_code: body.address_postal_code ?? null,
       address_country: body.address_country ?? null,
       website: body.website ?? null,
+      reminder_at: body.reminder_at ?? null,
+      reminder_note: body.reminder_note ?? null,
       created_by: user.id,
     })
     .select()

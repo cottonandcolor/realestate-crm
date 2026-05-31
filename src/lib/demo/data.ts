@@ -27,6 +27,8 @@ export function createSeedContacts(): Contact[] {
     address_postal_code: null,
     address_country: null,
     website: null,
+    reminder_at: null,
+    reminder_note: null,
   };
   return [
     {

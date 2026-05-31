@@ -92,6 +92,8 @@ export function addDemoContact(
     address_postal_code: data.address_postal_code ?? null,
     address_country: data.address_country ?? null,
     website: data.website ?? null,
+    reminder_at: data.reminder_at ?? null,
+    reminder_note: data.reminder_note ?? null,
     created_by: createdBy ?? DEMO_USER.id,
     created_at: now,
     updated_at: now,

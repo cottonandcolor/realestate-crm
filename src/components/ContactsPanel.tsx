@@ -20,29 +20,82 @@ function ContactCard({
   contact,
   onEdit,
   onDelete,
+  onReminderSaved,
 }: {
   contact: ContactWithLeads;
   onEdit: (c: ContactWithLeads) => void;
   onDelete: (id: string) => void;
+  onReminderSaved: (id: string, at: string | null, note: string | null) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showReminder, setShowReminder] = useState(false);
+  const [remAt, setRemAt] = useState(contact.reminder_at?.slice(0, 16) ?? "");
+  const [remNote, setRemNote] = useState(contact.reminder_note ?? "");
+  const [saving, setSaving] = useState(false);
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
   const address = [contact.address_street, contact.address_city, contact.address_region, contact.address_postal_code]
     .filter(Boolean).join(", ");
 
+  const isOverdue = contact.reminder_at && new Date(contact.reminder_at) < new Date();
+  const isDue = contact.reminder_at && !isOverdue && new Date(contact.reminder_at) <= new Date(Date.now() + 24 * 3600_000);
+
+  async function saveReminder() {
+    setSaving(true);
+    const res = await fetch(`/api/contacts/${contact.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reminder_at: remAt || null, reminder_note: remNote || null }),
+    });
+    if (res.ok) {
+      onReminderSaved(contact.id, remAt || null, remNote || null);
+      setShowReminder(false);
+    }
+    setSaving(false);
+  }
+
+  function clearReminder() {
+    setRemAt(""); setRemNote("");
+    fetch(`/api/contacts/${contact.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reminder_at: null, reminder_note: null }),
+    }).then(() => onReminderSaved(contact.id, null, null));
+  }
+
   return (
     <div className="glass" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
           <strong>{fullName}</strong>
           {contact.company && (
-            <span style={{ fontSize: "0.8rem", opacity: 0.7, marginLeft: "0.5rem" }}>
-              {contact.company}
+            <span style={{ fontSize: "0.8rem", opacity: 0.7 }}>{contact.company}</span>
+          )}
+          {contact.reminder_at && (
+            <span
+              title={contact.reminder_note ?? "Reminder set"}
+              style={{
+                fontSize: "0.72rem", padding: "0.15rem 0.5rem", borderRadius: "999px", whiteSpace: "nowrap",
+                background: isOverdue ? "rgba(229,62,62,0.25)" : isDue ? "rgba(255,193,7,0.25)" : "rgba(99,102,241,0.2)",
+                color: isOverdue ? "#fc8181" : isDue ? "#f6c90e" : "var(--color-primary)",
+                border: `1px solid ${isOverdue ? "#fc8181" : isDue ? "#f6c90e" : "var(--color-primary)"}`,
+                cursor: "pointer",
+              }}
+              onClick={() => setShowReminder((v) => !v)}
+            >
+              🔔 {new Date(contact.reminder_at).toLocaleDateString()}
+              {isOverdue && " (overdue)"}
             </span>
           )}
         </div>
         <div style={{ display: "flex", gap: "0.4rem" }}>
+          <button
+            type="button"
+            className="btn"
+            title="Set reminder"
+            style={{ padding: "0.2rem 0.5rem", fontSize: "0.8rem" }}
+            onClick={() => setShowReminder((v) => !v)}
+          >🔔</button>
           <button type="button" className="btn" style={{ padding: "0.2rem 0.6rem", fontSize: "0.8rem" }} onClick={() => onEdit(contact)}>Edit</button>
           <button type="button" className="btn" style={{ padding: "0.2rem 0.6rem", fontSize: "0.8rem", color: "#e53e3e" }} onClick={() => onDelete(contact.id)}>✕</button>
         </div>
@@ -94,6 +147,42 @@ function ContactCard({
               ))}
             </ul>
           )}
+        </div>
+      )}
+
+      {/* Inline reminder editor */}
+      {showReminder && (
+        <div style={{
+          background: "rgba(99,102,241,0.1)", border: "1px solid var(--color-primary)",
+          borderRadius: "0.5rem", padding: "0.75rem", display: "flex", flexDirection: "column", gap: "0.5rem",
+        }}>
+          <p style={{ fontSize: "0.8rem", fontWeight: 600, margin: 0 }}>🔔 Set Reminder</p>
+          <input
+            type="datetime-local"
+            className="input"
+            style={{ fontSize: "0.82rem" }}
+            value={remAt}
+            onChange={(e) => setRemAt(e.target.value)}
+          />
+          <input
+            type="text"
+            className="input"
+            placeholder="Note (optional)"
+            style={{ fontSize: "0.82rem" }}
+            value={remNote}
+            onChange={(e) => setRemNote(e.target.value)}
+          />
+          <div style={{ display: "flex", gap: "0.4rem" }}>
+            <button type="button" className="btn btn-primary" style={{ fontSize: "0.8rem" }} onClick={saveReminder} disabled={saving || !remAt}>
+              {saving ? "Saving…" : "Save"}
+            </button>
+            {contact.reminder_at && (
+              <button type="button" className="btn" style={{ fontSize: "0.8rem", color: "#e53e3e" }} onClick={clearReminder}>
+                Clear
+              </button>
+            )}
+            <button type="button" className="btn" style={{ fontSize: "0.8rem" }} onClick={() => setShowReminder(false)}>Cancel</button>
+          </div>
         </div>
       )}
 
@@ -291,6 +380,31 @@ function ContactForm({
           </div>
         </div>
 
+        {section("Reminder")}
+        <div style={{ gridColumn: "1 / -1", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+          <div>
+            <label style={{ fontSize: "0.82rem" }}>Remind me on</label>
+            <input
+              type="datetime-local"
+              className="input"
+              style={{ maxWidth: "none", margin: "0.2rem 0 0" }}
+              value={(form.reminder_at as string)?.slice(0, 16) ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, reminder_at: e.target.value || null }))}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: "0.82rem" }}>Reminder note</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. Follow up on offer"
+              style={{ maxWidth: "none", margin: "0.2rem 0 0" }}
+              value={(form.reminder_note as string) ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, reminder_note: e.target.value }))}
+            />
+          </div>
+        </div>
+
         {section("Notes")}
         <div style={{ gridColumn: "1 / -1" }}>
           <div style={{ position: "relative" }}>
@@ -413,6 +527,45 @@ export function ContactsPanel({
 
   return (
     <section id="contacts" style={{ marginBottom: "3rem" }}>
+      {/* Upcoming Reminders banner */}
+      {(() => {
+        const upcoming = initialContacts
+          .filter((c) => c.reminder_at)
+          .sort((a, b) => new Date(a.reminder_at!).getTime() - new Date(b.reminder_at!).getTime())
+          .slice(0, 5);
+        if (!upcoming.length) return null;
+        const now = new Date();
+        return (
+          <div style={{
+            marginBottom: "1rem", padding: "0.75rem 1rem",
+            background: "rgba(99,102,241,0.1)", border: "1px solid var(--color-primary)",
+            borderRadius: "0.75rem",
+          }}>
+            <p style={{ margin: "0 0 0.5rem", fontWeight: 600, fontSize: "0.85rem" }}>🔔 Upcoming Reminders</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+              {upcoming.map((c) => {
+                const dt = new Date(c.reminder_at!);
+                const overdue = dt < now;
+                const name = [c.first_name, c.last_name].filter(Boolean).join(" ");
+                return (
+                  <div key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.82rem" }}>
+                    <span style={{
+                      padding: "0.1rem 0.5rem", borderRadius: "999px",
+                      background: overdue ? "rgba(229,62,62,0.2)" : "rgba(255,193,7,0.15)",
+                      color: overdue ? "#fc8181" : "#f6c90e", whiteSpace: "nowrap",
+                    }}>
+                      {overdue ? "Overdue" : dt.toLocaleDateString()} {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <strong>{name}</strong>
+                    {c.reminder_note && <span style={{ opacity: 0.7 }}>— {c.reminder_note}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
         <h2 style={{ margin: 0 }}>Contacts
           <span style={{ fontSize: "0.85rem", fontWeight: 400, opacity: 0.6, marginLeft: "0.5rem" }}>
@@ -497,6 +650,11 @@ export function ContactsPanel({
             contact={c}
             onEdit={(ct) => { setEditing(ct); setAdding(false); }}
             onDelete={handleDelete}
+            onReminderSaved={(id, at, note) =>
+              onContactsChange(initialContacts.map((x) =>
+                x.id === id ? { ...x, reminder_at: at, reminder_note: note } : x
+              ))
+            }
           />
         ))}
         {filtered.length === 0 && (

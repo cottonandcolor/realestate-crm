@@ -59,6 +59,8 @@ export interface Contact {
   address_postal_code: string | null;
   address_country: string | null;
   website: string | null;
+  reminder_at: string | null;
+  reminder_note: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

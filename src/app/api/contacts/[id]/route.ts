@@ -42,6 +42,7 @@ export async function PATCH(_req: Request, { params }: { params: Promise<{ id: s
     "first_name","last_name","email","phone","company","job_title",
     "notes","tags","birthday","relationship","website",
     "address_street","address_city","address_region","address_postal_code","address_country",
+    "reminder_at","reminder_note",
   ];
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const key of allowed) {
