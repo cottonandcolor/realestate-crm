@@ -226,21 +226,37 @@ export function ContactsPanel({
   onContactsChange: (contacts: ContactWithLeads[]) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [activeLabel, setActiveLabel] = useState("");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<ContactWithLeads | null>(null);
   const [status, setStatus] = useState("");
   const [voicePrefill, setVoicePrefill] = useState<Partial<Contact> | null>(null);
 
+  // All unique labels sorted
+  const allLabels = Array.from(
+    new Set(contacts.flatMap((c) => c.tags ?? []))
+  ).sort();
+
   const filtered = contacts.filter((c) => {
-    const q = search.toLowerCase();
-    return (
-      c.first_name.toLowerCase().includes(q) ||
-      (c.last_name ?? "").toLowerCase().includes(q) ||
-      (c.email ?? "").toLowerCase().includes(q) ||
-      (c.company ?? "").toLowerCase().includes(q) ||
-      (c.phone ?? "").includes(q) ||
-      (c.tags ?? []).some((t) => t.toLowerCase().includes(q))
-    );
+    // Label filter
+    if (activeLabel && !(c.tags ?? []).includes(activeLabel)) return false;
+    // Text search — name, email, phone, company, tags, notes, city, job title
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        c.first_name.toLowerCase().includes(q) ||
+        (c.last_name ?? "").toLowerCase().includes(q) ||
+        (c.email ?? "").toLowerCase().includes(q) ||
+        (c.company ?? "").toLowerCase().includes(q) ||
+        (c.job_title ?? "").toLowerCase().includes(q) ||
+        (c.phone ?? "").includes(q) ||
+        (c.notes ?? "").toLowerCase().includes(q) ||
+        (c.address_city ?? "").toLowerCase().includes(q) ||
+        (c.address_region ?? "").toLowerCase().includes(q) ||
+        (c.tags ?? []).some((t) => t.toLowerCase().includes(q))
+      );
+    }
+    return true;
   });
 
   async function handleAdd(data: Partial<Contact>) {
@@ -289,7 +305,11 @@ export function ContactsPanel({
   return (
     <section id="contacts" style={{ marginBottom: "3rem" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-        <h2 style={{ margin: 0 }}>Contacts</h2>
+        <h2 style={{ margin: 0 }}>Contacts
+          <span style={{ fontSize: "0.85rem", fontWeight: 400, opacity: 0.6, marginLeft: "0.5rem" }}>
+            {filtered.length !== contacts.length ? `${filtered.length} of ${contacts.length}` : contacts.length}
+          </span>
+        </h2>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <a href="/api/export?type=contacts&format=csv" className="btn">⬇ Export CSV</a>
           <MicButton
@@ -309,11 +329,45 @@ export function ContactsPanel({
       <input
         type="text"
         className="search"
-        placeholder="Search contacts…"
+        placeholder="Search by name, notes, label, city, phone…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{ marginBottom: "1rem" }}
+        style={{ marginBottom: "0.5rem" }}
       />
+
+      {/* Label filter chips */}
+      {allLabels.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem", marginBottom: "1rem" }}>
+          <button
+            type="button"
+            onClick={() => setActiveLabel("")}
+            style={{
+              fontSize: "0.75rem", padding: "0.2rem 0.65rem", borderRadius: "999px", cursor: "pointer",
+              border: "1px solid var(--color-border)",
+              background: activeLabel === "" ? "var(--indigo-500)" : "transparent",
+              color: activeLabel === "" ? "#fff" : "var(--color-text-muted)",
+            }}
+          >All ({contacts.length})</button>
+          {allLabels.map((label) => {
+            const count = contacts.filter((c) => (c.tags ?? []).includes(label)).length;
+            const active = activeLabel === label;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setActiveLabel(active ? "" : label)}
+                style={{
+                  fontSize: "0.75rem", padding: "0.2rem 0.65rem", borderRadius: "999px", cursor: "pointer",
+                  border: "1px solid var(--color-border)",
+                  background: active ? "var(--indigo-500)" : "transparent",
+                  color: active ? "#fff" : "var(--color-text-muted)",
+                  whiteSpace: "nowrap",
+                }}
+              >{label} ({count})</button>
+            );
+          })}
+        </div>
+      )}
 
       {adding && (
         <ContactForm
@@ -338,8 +392,10 @@ export function ContactsPanel({
           />
         ))}
         {filtered.length === 0 && (
-          <p className="glass" style={{ gridColumn: "1 / -1" }}>
-            {search ? "No contacts match your search." : "No contacts yet — add one above."}
+          <p className="glass" style={{ gridColumn: "1 / -1", padding: "1rem" }}>
+            {search || activeLabel
+              ? `No contacts match${activeLabel ? ` label "${activeLabel}"` : ""}${search ? ` and "${search}"` : ""}.`
+              : "No contacts yet — add one above."}
           </p>
         )}
       </div>
