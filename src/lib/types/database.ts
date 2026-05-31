@@ -48,7 +48,17 @@ export interface Contact {
   email: string | null;
   phone: string | null;
   company: string | null;
+  job_title: string | null;
   notes: string | null;
+  tags: string[];
+  birthday: string | null;
+  relationship: string | null;
+  address_street: string | null;
+  address_city: string | null;
+  address_region: string | null;
+  address_postal_code: string | null;
+  address_country: string | null;
+  website: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

@@ -28,6 +28,8 @@ function ContactCard({
   const [expanded, setExpanded] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
+  const address = [contact.address_street, contact.address_city, contact.address_region, contact.address_postal_code]
+    .filter(Boolean).join(", ");
 
   return (
     <div className="glass" style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
@@ -47,7 +49,21 @@ function ContactCard({
       </div>
       {contact.email && <p style={{ fontSize: "0.85rem" }}>✉ {contact.email}</p>}
       {contact.phone && <p style={{ fontSize: "0.85rem" }}>📞 {contact.phone}</p>}
+      {address && <p style={{ fontSize: "0.82rem", opacity: 0.75 }}>📍 {address}</p>}
+      {contact.website && <p style={{ fontSize: "0.82rem", opacity: 0.75 }}>🌐 <a href={contact.website} target="_blank" rel="noreferrer" style={{ color: "var(--color-primary)" }}>{contact.website.replace(/^https?:\/\//, "")}</a></p>}
       {contact.notes && <p style={{ fontSize: "0.8rem", opacity: 0.75, fontStyle: "italic" }}>{contact.notes}</p>}
+
+      {/* Tags / Labels */}
+      {(contact.tags?.length ?? 0) > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.1rem" }}>
+          {contact.tags!.map((tag) => (
+            <span key={tag} style={{
+              fontSize: "0.72rem", padding: "0.15rem 0.5rem", borderRadius: "999px",
+              background: "var(--color-border)", color: "var(--color-text-muted)", whiteSpace: "nowrap"
+            }}>{tag}</span>
+          ))}
+        </div>
+      )}
 
       {(contact.leads?.length ?? 0) > 0 && (
         <div>
@@ -117,37 +133,65 @@ function ContactForm({
         setForm((f) => ({ ...f, [key]: e.target.value })),
     };
   }
+  const section = (label: string) => (
+    <p style={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.5, margin: "0.75rem 0 0.35rem", gridColumn: "1 / -1" }}>{label}</p>
+  );
+  const inp = (label: string, key: keyof Contact, type = "text", placeholder = "") => (
+    <div>
+      <label style={{ fontSize: "0.82rem" }}>{label}</label>
+      <input className="input" type={type} placeholder={placeholder} style={{ maxWidth: "none", margin: "0.2rem 0 0" }} {...field(key)} />
+    </div>
+  );
 
   return (
     <div className="glass" style={{ padding: "1.25rem", marginBottom: "1rem" }}>
       <h3 style={{ marginBottom: "0.75rem" }}>{initial?.id ? "Edit Contact" : "Add Contact"}</h3>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
-        <div>
-          <label style={{ fontSize: "0.82rem" }}>First name *</label>
-          <input className="input" style={{ maxWidth: "none", margin: "0.2rem 0 0" }} {...field("first_name")} required />
-        </div>
-        <div>
-          <label style={{ fontSize: "0.82rem" }}>Last name</label>
-          <input className="input" style={{ maxWidth: "none", margin: "0.2rem 0 0" }} {...field("last_name")} />
-        </div>
-        <div>
-          <label style={{ fontSize: "0.82rem" }}>Email</label>
-          <input className="input" type="email" style={{ maxWidth: "none", margin: "0.2rem 0 0" }} {...field("email")} />
-        </div>
-        <div>
-          <label style={{ fontSize: "0.82rem" }}>Phone</label>
-          <input className="input" style={{ maxWidth: "none", margin: "0.2rem 0 0" }} {...field("phone")} />
-        </div>
+
+        {section("Name")}
+        {inp("First name *", "first_name")}
+        {inp("Last name", "last_name")}
+
+        {section("Work Info")}
+        {inp("Company", "company")}
+        {inp("Job title", "job_title")}
+
+        {section("Contact")}
+        {inp("Email", "email", "email")}
+        {inp("Phone", "phone", "tel")}
+        {inp("Website", "website", "url", "https://")}
+
+        {section("Address")}
         <div style={{ gridColumn: "1 / -1" }}>
-          <label style={{ fontSize: "0.82rem" }}>Company</label>
-          <input className="input" style={{ maxWidth: "none", margin: "0.2rem 0 0" }} {...field("company")} />
+          <label style={{ fontSize: "0.82rem" }}>Street</label>
+          <input className="input" style={{ maxWidth: "none", margin: "0.2rem 0 0" }} {...field("address_street")} />
         </div>
+        {inp("City", "address_city")}
+        {inp("State / Region", "address_region")}
+        {inp("Postal code", "address_postal_code")}
+        {inp("Country", "address_country")}
+
+        {section("More")}
+        {inp("Birthday", "birthday", "text", "e.g. 1990-05-20")}
+        {inp("Relationship", "relationship", "text", "e.g. Friend, Client")}
+
         <div style={{ gridColumn: "1 / -1" }}>
-          <label style={{ fontSize: "0.82rem" }}>Notes</label>
+          <label style={{ fontSize: "0.82rem" }}>Groups / Labels (comma-separated)</label>
+          <input
+            className="input"
+            style={{ maxWidth: "none", margin: "0.2rem 0 0" }}
+            value={(form.tags ?? []).join(", ")}
+            onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) }))}
+            placeholder="e.g. RE Client, Friend"
+          />
+        </div>
+
+        {section("Notes")}
+        <div style={{ gridColumn: "1 / -1" }}>
           <div style={{ position: "relative" }}>
             <textarea
               className="input"
-              rows={2}
+              rows={3}
               style={{ maxWidth: "none", margin: "0.2rem 0 0", width: "100%", resize: "vertical", paddingRight: "2.75rem" }}
               value={(form.notes as string) ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -158,6 +202,7 @@ function ContactForm({
           </div>
         </div>
       </div>
+
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
         <button
           type="button"
@@ -192,7 +237,9 @@ export function ContactsPanel({
       c.first_name.toLowerCase().includes(q) ||
       (c.last_name ?? "").toLowerCase().includes(q) ||
       (c.email ?? "").toLowerCase().includes(q) ||
-      (c.company ?? "").toLowerCase().includes(q)
+      (c.company ?? "").toLowerCase().includes(q) ||
+      (c.phone ?? "").includes(q) ||
+      (c.tags ?? []).some((t) => t.toLowerCase().includes(q))
     );
   });
 

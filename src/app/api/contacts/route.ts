@@ -53,7 +53,17 @@ export async function POST(request: Request) {
       email: body.email ?? null,
       phone: body.phone ?? null,
       company: body.company ?? null,
+      job_title: body.job_title ?? null,
       notes: body.notes ?? null,
+      tags: body.tags ?? [],
+      birthday: body.birthday ?? null,
+      relationship: body.relationship ?? null,
+      address_street: body.address_street ?? null,
+      address_city: body.address_city ?? null,
+      address_region: body.address_region ?? null,
+      address_postal_code: body.address_postal_code ?? null,
+      address_country: body.address_country ?? null,
+      website: body.website ?? null,
       created_by: user.id,
     })
     .select()
