@@ -16,6 +16,18 @@ export const SEED_CONTACT_IDS = {
 };
 
 export function createSeedContacts(): Contact[] {
+  const defaults = {
+    tags: [] as string[],
+    job_title: null,
+    birthday: null,
+    relationship: null,
+    address_street: null,
+    address_city: null,
+    address_region: null,
+    address_postal_code: null,
+    address_country: null,
+    website: null,
+  };
   return [
     {
       id: SEED_CONTACT_IDS.alice,
@@ -26,6 +38,8 @@ export function createSeedContacts(): Contact[] {
       phone: "555-1234",
       company: null,
       notes: "Interested in downtown condos.",
+      ...defaults,
+      tags: ["RE Client"],
       created_by: DEMO_USER.id,
       created_at: ts(-10),
       updated_at: ts(-2),
@@ -39,6 +53,8 @@ export function createSeedContacts(): Contact[] {
       phone: "555-5678",
       company: "Smith & Co.",
       notes: "Referred by Alice.",
+      ...defaults,
+      tags: ["RE Client", "RE Contact"],
       created_by: DEMO_USER.id,
       created_at: ts(-10),
       updated_at: ts(-1),
@@ -52,6 +68,8 @@ export function createSeedContacts(): Contact[] {
       phone: "555-9012",
       company: "Lee Investments LLC",
       notes: "Multi-property investor.",
+      ...defaults,
+      tags: ["RE Commercial", "RE Customer"],
       created_by: DEMO_USER.id,
       created_at: ts(-15),
       updated_at: ts(-3),
