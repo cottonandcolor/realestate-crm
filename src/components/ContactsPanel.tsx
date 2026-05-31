@@ -120,12 +120,16 @@ function ContactForm({
   initial,
   onSave,
   onCancel,
+  availableGroups = [],
 }: {
   initial?: Partial<Contact>;
   onSave: (data: Partial<Contact>) => void;
   onCancel: () => void;
+  availableGroups?: string[];
 }) {
   const [form, setForm] = useState<Partial<Contact>>(initial ?? {});
+  const [groupsOpen, setGroupsOpen] = useState(false);
+  const [newGroup, setNewGroup] = useState("");
   function field(key: keyof Contact) {
     return {
       value: (form[key] as string) ?? "",
@@ -176,14 +180,115 @@ function ContactForm({
         {inp("Relationship", "relationship", "text", "e.g. Friend, Client")}
 
         <div style={{ gridColumn: "1 / -1" }}>
-          <label style={{ fontSize: "0.82rem" }}>Groups / Labels (comma-separated)</label>
-          <input
-            className="input"
-            style={{ maxWidth: "none", margin: "0.2rem 0 0" }}
-            value={(form.tags ?? []).join(", ")}
-            onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) }))}
-            placeholder="e.g. RE Client, Friend"
-          />
+          <label style={{ fontSize: "0.82rem" }}>Groups / Labels</label>
+          {/* Selected chips */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", margin: "0.35rem 0 0.35rem" }}>
+            {(form.tags ?? []).map((tag) => (
+              <span
+                key={tag}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: "0.3rem",
+                  fontSize: "0.75rem", padding: "0.2rem 0.55rem", borderRadius: "999px",
+                  background: "var(--indigo-500)", color: "#fff",
+                }}
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, tags: (f.tags ?? []).filter((t) => t !== tag) }))}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", padding: 0, lineHeight: 1, fontSize: "0.85rem" }}
+                >×</button>
+              </span>
+            ))}
+          </div>
+          {/* Dropdown */}
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setGroupsOpen((o) => !o)}
+              className="input"
+              style={{
+                maxWidth: "none", width: "100%", textAlign: "left", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+              }}
+            >
+              <span style={{ opacity: 0.6 }}>
+                {(form.tags ?? []).length === 0 ? "Select or add groups…" : `${(form.tags ?? []).length} selected`}
+              </span>
+              <span style={{ opacity: 0.5 }}>{groupsOpen ? "▲" : "▼"}</span>
+            </button>
+            {groupsOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 50,
+                background: "var(--color-surface)", border: "1px solid var(--color-border)",
+                borderRadius: "0.5rem", boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                maxHeight: "220px", overflowY: "auto",
+              }}>
+                {/* Add new group inline */}
+                <div style={{ display: "flex", gap: "0.35rem", padding: "0.5rem 0.75rem", borderBottom: "1px solid var(--color-border)" }}>
+                  <input
+                    className="input"
+                    style={{ flex: 1, fontSize: "0.82rem", padding: "0.25rem 0.5rem" }}
+                    placeholder="New group name…"
+                    value={newGroup}
+                    onChange={(e) => setNewGroup(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newGroup.trim()) {
+                        e.preventDefault();
+                        const g = newGroup.trim();
+                        setForm((f) => ({ ...f, tags: [...new Set([...(f.tags ?? []), g])] }));
+                        setNewGroup("");
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ fontSize: "0.8rem", padding: "0.25rem 0.65rem" }}
+                    onClick={() => {
+                      if (newGroup.trim()) {
+                        const g = newGroup.trim();
+                        setForm((f) => ({ ...f, tags: [...new Set([...(f.tags ?? []), g])] }));
+                        setNewGroup("");
+                      }
+                    }}
+                  >Add</button>
+                </div>
+                {/* Existing group options */}
+                {availableGroups.length === 0 && (
+                  <p style={{ padding: "0.6rem 0.75rem", fontSize: "0.82rem", opacity: 0.5 }}>No groups yet — type above to create one.</p>
+                )}
+                {availableGroups.map((g) => {
+                  const checked = (form.tags ?? []).includes(g);
+                  return (
+                    <label
+                      key={g}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "0.6rem",
+                        padding: "0.45rem 0.75rem", cursor: "pointer", fontSize: "0.85rem",
+                        background: checked ? "rgba(99,102,241,0.15)" : "transparent",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() =>
+                          setForm((f) => ({
+                            ...f,
+                            tags: checked
+                              ? (f.tags ?? []).filter((t) => t !== g)
+                              : [...new Set([...(f.tags ?? []), g])],
+                          }))
+                        }
+                        style={{ accentColor: "var(--indigo-500)" }}
+                      />
+                      {g}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {section("Notes")}
@@ -390,10 +495,11 @@ export function ContactsPanel({
           initial={voicePrefill ?? undefined}
           onSave={handleAdd}
           onCancel={() => { setAdding(false); setVoicePrefill(null); }}
+          availableGroups={allLabels}
         />
       )}
       {editing && (
-        <ContactForm initial={editing} onSave={handleEdit} onCancel={() => setEditing(null)} />
+        <ContactForm initial={editing} onSave={handleEdit} onCancel={() => setEditing(null)} availableGroups={allLabels} />
       )}
 
       {status && <p className="status-msg" style={{ marginBottom: "0.75rem" }}>{status}</p>}
