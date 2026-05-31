@@ -68,8 +68,18 @@ export default async function DashboardPage() {
     supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-    supabase.from("contacts").select("*, leads(id, name, stage)").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("contacts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
   ]);
+
+  // Attach leads to contacts manually (avoids relational FK schema cache issues)
+  const rawContacts = contactsFresh ?? [];
+  const allLeads = leadsFresh.data ?? [];
+  const contactsWithLeads = rawContacts.map((c) => ({
+    ...c,
+    leads: allLeads
+      .filter((l) => l.contact_id === c.id)
+      .map(({ id, name, stage }: { id: string; name: string; stage: string }) => ({ id, name, stage })),
+  }));
 
   return (
     <>
@@ -78,7 +88,7 @@ export default async function DashboardPage() {
         leads={leadsFresh.data ?? []}
         listings={listingsFresh.data ?? []}
         tasks={tasksFresh.data ?? []}
-        contacts={contactsFresh ?? []}
+        contacts={contactsWithLeads}
         calendarConnected={!!googleToken}
       />
       <footer className="footer">

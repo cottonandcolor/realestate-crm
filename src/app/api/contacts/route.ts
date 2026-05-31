@@ -19,7 +19,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("contacts")
-    .select("*, leads(id, name, stage, created_at)")
+    .select("*")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false });
 
