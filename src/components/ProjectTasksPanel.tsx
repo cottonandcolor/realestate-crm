@@ -1,55 +1,131 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Project, Task, TaskStatus } from "@/lib/types/database";
+import { sortTasksByOrder } from "@/lib/tasks/sort";
 import { KanbanBoard } from "./KanbanBoard";
 
 type ViewMode = "projects" | "board";
 
-function TaskRow({
-  task,
+function DragHandle() {
+  return (
+    <span
+      aria-label="Drag to reorder"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(2, 3px)",
+        gap: 3,
+        padding: "6px 4px",
+        cursor: "grab",
+        flexShrink: 0,
+        touchAction: "none",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {Array.from({ length: 6 }).map((_, i) => (
+        <span
+          key={i}
+          style={{
+            width: 3,
+            height: 3,
+            borderRadius: "50%",
+            background: "var(--color-text-muted)",
+            opacity: 0.45,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function SortableTaskList({
+  tasks,
+  onReorder,
   onToggle,
   onDelete,
 }: {
-  task: Task;
+  tasks: Task[];
+  onReorder: (orderedIds: string[]) => void;
   onToggle: (id: string, done: boolean) => void;
   onDelete: (id: string) => void;
 }) {
-  const done = task.status === "done";
+  const [ordered, setOrdered] = useState(() => sortTasksByOrder(tasks));
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!dragId) setOrdered(sortTasksByOrder(tasks));
+  }, [tasks, dragId]);
+
+  function moveItem(draggingId: string, overId: string) {
+    const from = ordered.findIndex((t) => t.id === draggingId);
+    const to = ordered.findIndex((t) => t.id === overId);
+    if (from < 0 || to < 0 || from === to) return;
+    const next = [...ordered];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    setOrdered(next);
+  }
+
+  function finishDrag() {
+    if (dragId) onReorder(ordered.map((t) => t.id));
+    setDragId(null);
+  }
+
   return (
-    <li
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: "0.5rem",
-        padding: "0.45rem 0",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        opacity: done ? 0.55 : 1,
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={done}
-        onChange={() => onToggle(task.id, !done)}
-        style={{ marginTop: "0.2rem", accentColor: "var(--indigo-500)", cursor: "pointer" }}
-      />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
-        {task.due_at && (
-          <small style={{ display: "block", opacity: 0.65, marginTop: "0.15rem" }}>
-            Due {new Date(task.due_at).toLocaleDateString()}
-          </small>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={() => onDelete(task.id)}
-        style={{ background: "none", border: "none", cursor: "pointer", color: "#e53e3e", fontSize: "0.85rem", padding: 0 }}
-        title="Delete task"
-      >
-        ✕
-      </button>
-    </li>
+    <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+      {ordered.map((task) => {
+        const done = task.status === "done";
+        const isDragging = dragId === task.id;
+        return (
+          <li
+            key={task.id}
+            draggable
+            onDragStart={() => setDragId(task.id)}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragId && dragId !== task.id) moveItem(dragId, task.id);
+            }}
+            onDragEnd={finishDrag}
+            onDrop={(e) => e.preventDefault()}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.5rem",
+              padding: "0.5rem 0.35rem",
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              opacity: done ? 0.55 : isDragging ? 0.4 : 1,
+              background: isDragging ? "rgba(99,102,241,0.12)" : "transparent",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <DragHandle />
+            <input
+              type="checkbox"
+              checked={done}
+              onChange={() => onToggle(task.id, !done)}
+              onClick={(e) => e.stopPropagation()}
+              style={{ marginTop: "0.35rem", accentColor: "var(--indigo-500)", cursor: "pointer" }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
+              {task.due_at && (
+                <small style={{ display: "block", opacity: 0.65, marginTop: "0.15rem" }}>
+                  Due {new Date(task.due_at).toLocaleDateString()}
+                </small>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => onDelete(task.id)}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#e53e3e", fontSize: "0.85rem", padding: 0 }}
+              title="Delete task"
+            >
+              ✕
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -63,6 +139,7 @@ function ProjectSection({
   onAddTask,
   onToggleTask,
   onDeleteTask,
+  onReorderTasks,
 }: {
   project: Project;
   tasks: Task[];
@@ -73,6 +150,7 @@ function ProjectSection({
   onAddTask: (title: string, due: string) => void;
   onToggleTask: (id: string, done: boolean) => void;
   onDeleteTask: (id: string) => void;
+  onReorderTasks: (orderedIds: string[]) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
   const [newDue, setNewDue] = useState("");
@@ -155,14 +233,19 @@ function ProjectSection({
               {project.notes}
             </p>
           )}
-          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-            {tasks.map((t) => (
-              <TaskRow key={t.id} task={t} onToggle={onToggleTask} onDelete={onDeleteTask} />
-            ))}
-            {tasks.length === 0 && (
-              <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.5 }}>No tasks yet — add one below.</p>
-            )}
-          </ul>
+          {tasks.length === 0 ? (
+            <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.5 }}>No tasks yet — add one below.</p>
+          ) : (
+            <SortableTaskList
+              tasks={tasks}
+              onReorder={onReorderTasks}
+              onToggle={onToggleTask}
+              onDelete={onDeleteTask}
+            />
+          )}
+          <p style={{ margin: "0.5rem 0 0", fontSize: "0.75rem", opacity: 0.45 }}>
+            Drag the ⋮⋮ handle to change priority order
+          </p>
           <div
             style={{ display: "flex", gap: "0.4rem", marginTop: "0.75rem", flexWrap: "wrap" }}
             onClick={(e) => e.stopPropagation()}
@@ -225,9 +308,27 @@ export function ProjectTasksPanel({
   const [status, setStatus] = useState("");
 
   const unassigned = useMemo(
-    () => tasks.filter((t) => !t.project_id),
+    () => sortTasksByOrder(tasks.filter((t) => !t.project_id)),
     [tasks]
   );
+
+  function tasksForProject(projectId: string) {
+    return sortTasksByOrder(tasks.filter((t) => t.project_id === projectId));
+  }
+
+  async function reorderTasks(orderedIds: string[]) {
+    setTasks((prev) => {
+      const orderMap = new Map(orderedIds.map((id, i) => [id, i]));
+      return prev.map((t) =>
+        orderMap.has(t.id) ? { ...t, sort_order: orderMap.get(t.id)! } : t
+      );
+    });
+    await fetch("/api/tasks/reorder", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds }),
+    });
+  }
 
   async function createProject() {
     const name = newProjectName.trim();
@@ -281,7 +382,7 @@ export function ProjectTasksPanel({
     });
     if (res.ok) {
       const t = await res.json();
-      setTasks((prev) => [t, ...prev]);
+      setTasks((prev) => [...prev, t]);
     }
   }
 
@@ -350,7 +451,7 @@ export function ProjectTasksPanel({
       ) : (
         <>
           <p style={{ margin: "0 0 1rem", fontSize: "0.88rem", opacity: 0.75 }}>
-            Organize work by project — each listing, deal, or client can be its own project with tasks listed underneath.
+            Organize work by project — drag tasks with the ⋮⋮ handle to set priority (top = highest).
           </p>
 
           <div className="glass" style={{ padding: "1rem", marginBottom: "1.25rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -373,7 +474,7 @@ export function ProjectTasksPanel({
             <ProjectSection
               key={project.id}
               project={project}
-              tasks={tasks.filter((t) => t.project_id === project.id)}
+              tasks={tasksForProject(project.id)}
               collapsed={!!collapsed[project.id]}
               onToggleCollapse={() =>
                 setCollapsed((c) => ({ ...c, [project.id]: !c[project.id] }))
@@ -383,6 +484,7 @@ export function ProjectTasksPanel({
               onAddTask={(title, due) => addTask(project.id, title, due)}
               onToggleTask={toggleTask}
               onDeleteTask={removeTask}
+              onReorderTasks={reorderTasks}
             />
           ))}
 
@@ -401,14 +503,16 @@ export function ProjectTasksPanel({
                 </span>
               </div>
               <div style={{ padding: "0.75rem 1rem 1rem" }}>
-                <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                  {unassigned.map((t) => (
-                    <TaskRow key={t.id} task={t} onToggle={toggleTask} onDelete={removeTask} />
-                  ))}
-                  {unassigned.length === 0 && (
-                    <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.5 }}>No unassigned tasks.</p>
-                  )}
-                </ul>
+                {unassigned.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.5 }}>No unassigned tasks.</p>
+                ) : (
+                  <SortableTaskList
+                    tasks={unassigned}
+                    onReorder={reorderTasks}
+                    onToggle={toggleTask}
+                    onDelete={removeTask}
+                  />
+                )}
                 <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
                   <OtherTaskAdd onAdd={(title, due) => addTask(null, title, due)} />
                 </div>

@@ -25,7 +25,7 @@ export async function PATCH(
   const orgId = await getUserOrgId(supabase);
   if (!orgId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
-  const allowed = ["title", "status", "due_at", "project_id", "lead_id", "listing_id"];
+  const allowed = ["title", "status", "due_at", "project_id", "lead_id", "listing_id", "sort_order"];
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   for (const key of allowed) {
     if (key in body) patch[key] = body[key] ?? null;

@@ -32,14 +32,29 @@ export async function POST(request: Request) {
   const orgId = await getUserOrgId(supabase);
   if (!orgId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
+  const projectId = body.project_id ?? null;
+  let sortOrder = 0;
+  let maxQuery = supabase
+    .from("tasks")
+    .select("sort_order")
+    .eq("org_id", orgId)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  maxQuery = projectId
+    ? maxQuery.eq("project_id", projectId)
+    : maxQuery.is("project_id", null);
+  const { data: maxRow } = await maxQuery.maybeSingle();
+  if (maxRow) sortOrder = (maxRow.sort_order ?? 0) + 1;
+
   const { data, error } = await supabase
     .from("tasks")
     .insert({
       org_id: orgId,
       title: body.title,
       status: body.status ?? "todo",
+      sort_order: sortOrder,
       due_at: body.due_at ?? null,
-      project_id: body.project_id ?? null,
+      project_id: projectId,
       lead_id: body.lead_id ?? null,
       listing_id: body.listing_id ?? null,
       assigned_agent_id: user.id,

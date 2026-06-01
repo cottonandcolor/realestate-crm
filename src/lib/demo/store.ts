@@ -122,15 +122,28 @@ export function deleteDemoContact(contactId: string) {
   );
 }
 
+export function reorderDemoTasks(orderedIds: string[]) {
+  orderedIds.forEach((id, index) => {
+    const task = tasks.find((t) => t.id === id);
+    if (task) {
+      task.sort_order = index;
+      task.updated_at = new Date().toISOString();
+    }
+  });
+}
+
 export function addDemoTask(
   data: { title: string; status?: TaskStatus; due_at?: string | null; project_id?: string | null }
 ): Task {
   const now = new Date().toISOString();
+  const siblings = tasks.filter((t) => t.project_id === (data.project_id ?? null));
+  const maxOrder = siblings.reduce((m, t) => Math.max(m, t.sort_order ?? 0), -1);
   const task: Task = {
     id: crypto.randomUUID(),
     org_id: orgId,
     title: data.title,
     status: data.status ?? "todo",
+    sort_order: maxOrder + 1,
     due_at: data.due_at ?? null,
     project_id: data.project_id ?? null,
     lead_id: null,
@@ -146,7 +159,7 @@ export function addDemoTask(
 
 export function updateDemoTask(
   taskId: string,
-  data: Partial<Pick<Task, "title" | "status" | "due_at" | "project_id">>
+  data: Partial<Pick<Task, "title" | "status" | "due_at" | "project_id" | "sort_order">>
 ): Task | null {
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return null;
@@ -154,6 +167,7 @@ export function updateDemoTask(
   if (data.status !== undefined) task.status = data.status;
   if (data.due_at !== undefined) task.due_at = data.due_at;
   if (data.project_id !== undefined) task.project_id = data.project_id;
+  if (data.sort_order !== undefined) task.sort_order = data.sort_order;
   task.updated_at = new Date().toISOString();
   return task;
 }

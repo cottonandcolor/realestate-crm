@@ -59,7 +59,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-    supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("tasks").select("*").eq("org_id", orgId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("projects").select("*").eq("org_id", orgId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("google_tokens").select("user_id").eq("user_id", user.id).maybeSingle(),
   ]);
@@ -70,7 +70,7 @@ export default async function DashboardPage() {
   const [leadsFresh, listingsFresh, tasksFresh, projectsFresh, { data: contactsFresh }] = await Promise.all([
     supabase.from("leads").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
     supabase.from("listings").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
-    supabase.from("tasks").select("*").eq("org_id", orgId).order("created_at", { ascending: false }),
+    supabase.from("tasks").select("*").eq("org_id", orgId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("projects").select("*").eq("org_id", orgId).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
     supabase.from("contacts").select("*").eq("org_id", orgId).order("created_at", { ascending: false }).limit(2000),
   ]);

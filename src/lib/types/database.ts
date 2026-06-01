@@ -122,6 +122,7 @@ export interface Task {
   org_id: string;
   title: string;
   status: TaskStatus;
+  sort_order: number;
   due_at: string | null;
   project_id: string | null;
   lead_id: string | null;
