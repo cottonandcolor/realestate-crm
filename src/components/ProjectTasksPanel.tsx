@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Project, Task, TaskStatus } from "@/lib/types/database";
+import { sortProjectsByOrder } from "@/lib/projects/sort";
 import { sortTasksByOrder } from "@/lib/tasks/sort";
 import { KanbanBoard } from "./KanbanBoard";
 
@@ -80,7 +81,10 @@ function SortableTaskList({
           <li
             key={task.id}
             draggable
-            onDragStart={() => setDragId(task.id)}
+            onDragStart={(e) => {
+              e.stopPropagation();
+              setDragId(task.id);
+            }}
             onDragOver={(e) => {
               e.preventDefault();
               if (dragId && dragId !== task.id) moveItem(dragId, task.id);
@@ -161,7 +165,7 @@ function ProjectSection({
   const done = tasks.filter((t) => t.status === "done").length;
 
   return (
-    <div className="glass" style={{ marginBottom: "1rem", overflow: "hidden" }}>
+    <div className="glass" style={{ overflow: "hidden" }}>
       <div
         style={{
           display: "flex",
@@ -169,11 +173,15 @@ function ProjectSection({
           gap: "0.5rem",
           padding: "0.85rem 1rem",
           borderBottom: collapsed ? "none" : "1px solid var(--color-border)",
-          cursor: "pointer",
         }}
-        onClick={onToggleCollapse}
       >
-        <span style={{ fontSize: "0.9rem", opacity: 0.7 }}>{collapsed ? "▸" : "▾"}</span>
+        <DragHandle />
+        <span
+          style={{ fontSize: "0.9rem", opacity: 0.7, cursor: "pointer" }}
+          onClick={onToggleCollapse}
+        >
+          {collapsed ? "▸" : "▾"}
+        </span>
         {editingName ? (
           <input
             className="input"
@@ -199,7 +207,8 @@ function ProjectSection({
           />
         ) : (
           <strong
-            style={{ flex: 1, fontSize: "1rem" }}
+            style={{ flex: 1, fontSize: "1rem", cursor: "pointer" }}
+            onClick={onToggleCollapse}
             onDoubleClick={(e) => {
               e.stopPropagation();
               setEditingName(true);
@@ -301,11 +310,18 @@ export function ProjectTasksPanel({
   demoMode?: boolean;
 }) {
   const [view, setView] = useState<ViewMode>("projects");
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState(() => sortProjectsByOrder(initialProjects));
   const [tasks, setTasks] = useState(initialTasks);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [newProjectName, setNewProjectName] = useState("");
   const [status, setStatus] = useState("");
+  const [dragProjectId, setDragProjectId] = useState<string | null>(null);
+  const projectsRef = useRef(projects);
+  projectsRef.current = projects;
+
+  useEffect(() => {
+    if (!dragProjectId) setProjects(sortProjectsByOrder(initialProjects));
+  }, [initialProjects, dragProjectId]);
 
   const unassigned = useMemo(
     () => sortTasksByOrder(tasks.filter((t) => !t.project_id)),
@@ -314,6 +330,39 @@ export function ProjectTasksPanel({
 
   function tasksForProject(projectId: string) {
     return sortTasksByOrder(tasks.filter((t) => t.project_id === projectId));
+  }
+
+  function moveProject(draggingId: string, overId: string) {
+    setProjects((prev) => {
+      const from = prev.findIndex((p) => p.id === draggingId);
+      const to = prev.findIndex((p) => p.id === overId);
+      if (from < 0 || to < 0 || from === to) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  }
+
+  async function reorderProjects(orderedIds: string[]) {
+    setProjects((prev) => {
+      const orderMap = new Map(orderedIds.map((id, i) => [id, i]));
+      return sortProjectsByOrder(
+        prev.map((p) => (orderMap.has(p.id) ? { ...p, sort_order: orderMap.get(p.id)! } : p))
+      );
+    });
+    await fetch("/api/projects/reorder", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderedIds }),
+    });
+  }
+
+  function finishProjectDrag() {
+    if (dragProjectId) {
+      void reorderProjects(projectsRef.current.map((p) => p.id));
+    }
+    setDragProjectId(null);
   }
 
   async function reorderTasks(orderedIds: string[]) {
@@ -340,7 +389,7 @@ export function ProjectTasksPanel({
     });
     if (res.ok) {
       const p = await res.json();
-      setProjects((prev) => [...prev, p]);
+      setProjects((prev) => sortProjectsByOrder([...prev, p]));
       setNewProjectName("");
       setCollapsed((c) => ({ ...c, [p.id]: false }));
       setStatus(`Project "${name}" created.`);
@@ -451,7 +500,7 @@ export function ProjectTasksPanel({
       ) : (
         <>
           <p style={{ margin: "0 0 1rem", fontSize: "0.88rem", opacity: 0.75 }}>
-            Organize work by project — drag tasks with the ⋮⋮ handle to set priority (top = highest).
+            Drag projects or tasks using the ⋮⋮ handle to reorder (top = highest priority).
           </p>
 
           <div className="glass" style={{ padding: "1rem", marginBottom: "1.25rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -470,23 +519,45 @@ export function ProjectTasksPanel({
 
           {status && <p className="status-msg" style={{ marginBottom: "0.75rem" }}>{status}</p>}
 
-          {projects.map((project) => (
-            <ProjectSection
-              key={project.id}
-              project={project}
-              tasks={tasksForProject(project.id)}
-              collapsed={!!collapsed[project.id]}
-              onToggleCollapse={() =>
-                setCollapsed((c) => ({ ...c, [project.id]: !c[project.id] }))
-              }
-              onRename={(name) => renameProject(project.id, name)}
-              onDeleteProject={() => removeProject(project.id)}
-              onAddTask={(title, due) => addTask(project.id, title, due)}
-              onToggleTask={toggleTask}
-              onDeleteTask={removeTask}
-              onReorderTasks={reorderTasks}
-            />
-          ))}
+          {projects.map((project) => {
+            const isDragging = dragProjectId === project.id;
+            return (
+              <div
+                key={project.id}
+                draggable
+                onDragStart={() => setDragProjectId(project.id)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (dragProjectId && dragProjectId !== project.id) {
+                    moveProject(dragProjectId, project.id);
+                  }
+                }}
+                onDragEnd={finishProjectDrag}
+                onDrop={(e) => e.preventDefault()}
+                style={{
+                  marginBottom: "1rem",
+                  opacity: isDragging ? 0.45 : 1,
+                  borderRadius: "var(--radius-md)",
+                  outline: isDragging ? "2px dashed var(--indigo-400)" : "none",
+                }}
+              >
+                <ProjectSection
+                  project={project}
+                  tasks={tasksForProject(project.id)}
+                  collapsed={!!collapsed[project.id]}
+                  onToggleCollapse={() =>
+                    setCollapsed((c) => ({ ...c, [project.id]: !c[project.id] }))
+                  }
+                  onRename={(name) => renameProject(project.id, name)}
+                  onDeleteProject={() => removeProject(project.id)}
+                  onAddTask={(title, due) => addTask(project.id, title, due)}
+                  onToggleTask={toggleTask}
+                  onDeleteTask={removeTask}
+                  onReorderTasks={reorderTasks}
+                />
+              </div>
+            );
+          })}
 
           {projects.length === 0 && (
             <p className="glass" style={{ padding: "1rem", marginBottom: "1rem", opacity: 0.8 }}>

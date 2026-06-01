@@ -211,6 +211,16 @@ export function deleteDemoProject(projectId: string) {
   );
 }
 
+export function reorderDemoProjects(orderedIds: string[]) {
+  orderedIds.forEach((id, index) => {
+    const project = projects.find((p) => p.id === id);
+    if (project) {
+      project.sort_order = index;
+      project.updated_at = new Date().toISOString();
+    }
+  });
+}
+
 export function linkDemoLeadToContact(leadId: string, contactId: string): boolean {
   const lead = leads.find((l) => l.id === leadId);
   if (!lead) return false;

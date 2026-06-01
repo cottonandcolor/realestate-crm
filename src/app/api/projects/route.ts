@@ -45,13 +45,22 @@ export async function POST(request: Request) {
   const orgId = await getUserOrgId(supabase);
   if (!orgId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
+  const { data: maxRow } = await supabase
+    .from("projects")
+    .select("sort_order")
+    .eq("org_id", orgId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const sortOrder = (maxRow?.sort_order ?? -1) + 1;
+
   const { data, error } = await supabase
     .from("projects")
     .insert({
       org_id: orgId,
       name,
       notes: body.notes ?? null,
-      sort_order: body.sort_order ?? 0,
+      sort_order: sortOrder,
     })
     .select()
     .single();
