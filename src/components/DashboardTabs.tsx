@@ -136,8 +136,23 @@ export function DashboardTabs({
 }) {
   // Sync active tab with URL hash so the back button + deep links work
   const [active, setActive] = useState<TabId>("overview");
+  const [leadsState, setLeadsState] = useState(leads);
   // Lift contacts state here so it survives tab switches
   const [contacts, setContacts] = useState<ContactWithLeads[]>(initialContacts);
+
+  function handleLeadUpdated(updated: Lead) {
+    setLeadsState((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+    const leadSummary = { id: updated.id, name: updated.name, stage: updated.stage };
+    setContacts((prev) =>
+      prev.map((c) => {
+        const without = (c.leads ?? []).filter((l) => l.id !== updated.id);
+        if (updated.contact_id === c.id) {
+          return { ...c, leads: [...without, leadSummary] };
+        }
+        return { ...c, leads: without };
+      })
+    );
+  }
   // Dismissible login-time reminder alert
   const [reminderAlert, setReminderAlert] = useState(true);
 
@@ -162,7 +177,7 @@ export function DashboardTabs({
   }
 
   const counts: Partial<Record<TabId, number>> = {
-    leads:    leads.length,
+    leads:    leadsState.length,
     contacts: contacts.length,
     listings: listings.length,
     tasks:    tasks.filter((t) => t.status !== "done").length,
@@ -222,7 +237,7 @@ export function DashboardTabs({
         {/* ── Overview ─────────────────────────────── */}
         {active === "overview" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <DashboardCards leads={leads} listings={listings} tasks={tasks} />
+            <DashboardCards leads={leadsState} listings={listings} tasks={tasks} />
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
               <div className="glass" style={{ padding: "1.25rem" }}>
@@ -266,7 +281,12 @@ export function DashboardTabs({
 
         {/* ── Leads ────────────────────────────────── */}
         {active === "leads" && (
-          <LeadsTable leads={leads} demoMode={demoMode} />
+          <LeadsTable
+            leads={leadsState}
+            contacts={contacts}
+            onLeadUpdated={handleLeadUpdated}
+            demoMode={demoMode}
+          />
         )}
 
         {/* ── Contacts ─────────────────────────────── */}

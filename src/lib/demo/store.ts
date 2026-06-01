@@ -228,3 +228,13 @@ export function linkDemoLeadToContact(leadId: string, contactId: string): boolea
   lead.updated_at = new Date().toISOString();
   return true;
 }
+
+export function updateDemoLead(
+  leadId: string,
+  data: Partial<Pick<Lead, "name" | "email" | "phone" | "stage" | "source" | "tags" | "contact_id">>
+): Lead | null {
+  const lead = leads.find((l) => l.id === leadId);
+  if (!lead) return null;
+  Object.assign(lead, data, { updated_at: new Date().toISOString() });
+  return lead;
+}

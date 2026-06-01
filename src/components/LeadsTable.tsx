@@ -1,10 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Lead } from "@/lib/types/database";
+import type { Contact, Lead } from "@/lib/types/database";
 import { LeadDetailDrawer } from "./LeadDetailDrawer";
 
-export function LeadsTable({ leads, demoMode = false }: { leads: Lead[]; demoMode?: boolean }) {
+export function LeadsTable({
+  leads,
+  contacts,
+  onLeadUpdated,
+  demoMode = false,
+}: {
+  leads: Lead[];
+  contacts: Contact[];
+  onLeadUpdated: (lead: Lead) => void;
+  demoMode?: boolean;
+}) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<keyof Lead>("name");
   const [sortAsc, setSortAsc] = useState(true);
@@ -55,7 +65,15 @@ export function LeadsTable({ leads, demoMode = false }: { leads: Lead[]; demoMod
   return (
     <>
       {activeLead && (
-        <LeadDetailDrawer lead={activeLead} onClose={() => setActiveLead(null)} />
+        <LeadDetailDrawer
+          lead={activeLead}
+          contacts={contacts}
+          onClose={() => setActiveLead(null)}
+          onLeadUpdated={(updated) => {
+            onLeadUpdated(updated);
+            setActiveLead(updated);
+          }}
+        />
       )}
 
       <section className="leads" id="leads">
@@ -80,17 +98,39 @@ export function LeadsTable({ leads, demoMode = false }: { leads: Lead[]; demoMod
               <th onClick={() => handleSort("email")}>Email</th>
               <th onClick={() => handleSort("phone")}>Phone</th>
               <th>Tags</th>
+              <th>Contact</th>
               <th>Activity</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((l) => (
+            {filtered.map((l) => {
+              const linked = l.contact_id
+                ? contacts.find((c) => c.id === l.contact_id)
+                : undefined;
+              const linkedName = linked
+                ? [linked.first_name, linked.last_name].filter(Boolean).join(" ")
+                : null;
+              return (
               <tr key={l.id} style={{ cursor: "pointer" }}>
                 <td onClick={() => setActiveLead(l)}>{l.name}</td>
                 <td onClick={() => setActiveLead(l)}>{l.email ?? "—"}</td>
                 <td onClick={() => setActiveLead(l)}>{l.phone ?? "—"}</td>
                 <td onClick={() => setActiveLead(l)}>{l.tags.join(", ") || "—"}</td>
+                <td onClick={() => setActiveLead(l)}>
+                  {linkedName ? (
+                    <span style={{ color: "var(--indigo-400)" }}>{linkedName}</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ fontSize: "0.78rem", padding: "0.15rem 0.5rem" }}
+                      onClick={(e) => { e.stopPropagation(); setActiveLead(l); }}
+                    >
+                      Link contact
+                    </button>
+                  )}
+                </td>
                 <td>
                   <button
                     type="button"
@@ -114,10 +154,11 @@ export function LeadsTable({ leads, demoMode = false }: { leads: Lead[]; demoMod
                   </button>
                 </td>
               </tr>
-            ))}
+            );
+            })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6}>No leads yet.</td>
+                <td colSpan={7}>No leads yet.</td>
               </tr>
             )}
           </tbody>
