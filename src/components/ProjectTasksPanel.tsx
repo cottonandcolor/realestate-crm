@@ -341,12 +341,16 @@ export function ProjectTasksPanel({
   const [newProjectName, setNewProjectName] = useState("");
   const [status, setStatus] = useState("");
   const [dragProjectId, setDragProjectId] = useState<string | null>(null);
-  const projectsRef = useRef(projects);
-  projectsRef.current = projects;
 
+  // Sync from server only when props actually change (not after every drag ends)
+  const projectsSigRef = useRef("");
   useEffect(() => {
-    if (!dragProjectId) setProjects(sortProjectsByOrder(initialProjects));
-  }, [initialProjects, dragProjectId]);
+    const sig = initialProjects.map((p) => `${p.id}:${p.sort_order}`).join("|");
+    if (sig !== projectsSigRef.current) {
+      projectsSigRef.current = sig;
+      setProjects(sortProjectsByOrder(initialProjects));
+    }
+  }, [initialProjects]);
 
   const unassigned = useMemo(
     () => sortTasksByOrder(tasks.filter((t) => !t.project_id)),
@@ -370,23 +374,34 @@ export function ProjectTasksPanel({
   }
 
   async function reorderProjects(orderedIds: string[]) {
-    setProjects((prev) => {
-      const orderMap = new Map(orderedIds.map((id, i) => [id, i]));
-      return sortProjectsByOrder(
-        prev.map((p) => (orderMap.has(p.id) ? { ...p, sort_order: orderMap.get(p.id)! } : p))
-      );
-    });
-    await fetch("/api/projects/reorder", {
+    const res = await fetch("/api/projects/reorder", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ orderedIds }),
     });
+    if (!res.ok) {
+      setStatus("Failed to save project order — refresh and try again.");
+      setProjects(sortProjectsByOrder(initialProjects));
+      return;
+    }
+    setProjects((prev) => {
+      const byId = new Map(prev.map((p) => [p.id, p]));
+      return orderedIds
+        .map((id, i) => {
+          const p = byId.get(id);
+          return p ? { ...p, sort_order: i } : null;
+        })
+        .filter((p): p is Project => p !== null);
+    });
+    projectsSigRef.current = orderedIds.map((id, i) => `${id}:${i}`).join("|");
   }
 
   function finishProjectDrag() {
-    if (dragProjectId) {
-      void reorderProjects(projectsRef.current.map((p) => p.id));
-    }
+    setProjects((prev) => {
+      const orderedIds = prev.map((p) => p.id);
+      void reorderProjects(orderedIds);
+      return prev;
+    });
     setDragProjectId(null);
   }
 
