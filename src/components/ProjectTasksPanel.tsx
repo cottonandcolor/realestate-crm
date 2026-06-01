@@ -8,32 +8,23 @@ import { KanbanBoard } from "./KanbanBoard";
 
 type ViewMode = "projects" | "board";
 
-function DragHandle() {
+/** Small grip for reordering tasks within a project */
+function TaskDragHandle() {
   return (
-    <span
-      aria-label="Drag to reorder"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(2, 3px)",
-        gap: 3,
-        padding: "6px 4px",
-        cursor: "grab",
-        flexShrink: 0,
-        touchAction: "none",
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
+    <span className="drag-handle drag-handle--task" aria-label="Drag to reorder task" title="Drag to reorder task">
       {Array.from({ length: 6 }).map((_, i) => (
-        <span
-          key={i}
-          style={{
-            width: 3,
-            height: 3,
-            borderRadius: "50%",
-            background: "var(--color-text-muted)",
-            opacity: 0.45,
-          }}
-        />
+        <span key={i} className="drag-handle__dot" />
+      ))}
+    </span>
+  );
+}
+
+/** Large grip on project header — clearly distinct from task handles */
+function ProjectDragHandle() {
+  return (
+    <span className="drag-handle drag-handle--project" aria-label="Drag to reorder project" title="Drag project">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <span key={i} className="drag-handle__dot" />
       ))}
     </span>
   );
@@ -102,7 +93,7 @@ function SortableTaskList({
               borderRadius: "var(--radius-sm)",
             }}
           >
-            <DragHandle />
+            <TaskDragHandle />
             <input
               type="checkbox"
               checked={done}
@@ -144,6 +135,10 @@ function ProjectSection({
   onToggleTask,
   onDeleteTask,
   onReorderTasks,
+  isDraggingProject = false,
+  onProjectDragStart,
+  onProjectDragOver,
+  onProjectDragEnd,
 }: {
   project: Project;
   tasks: Task[];
@@ -155,6 +150,10 @@ function ProjectSection({
   onToggleTask: (id: string, done: boolean) => void;
   onDeleteTask: (id: string) => void;
   onReorderTasks: (orderedIds: string[]) => void;
+  isDraggingProject?: boolean;
+  onProjectDragStart?: () => void;
+  onProjectDragOver?: (e: React.DragEvent) => void;
+  onProjectDragEnd?: () => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
   const [newDue, setNewDue] = useState("");
@@ -164,18 +163,44 @@ function ProjectSection({
   const open = tasks.filter((t) => t.status !== "done").length;
   const done = tasks.filter((t) => t.status === "done").length;
 
+  const sortable = !!onProjectDragStart;
+
   return (
-    <div className="glass" style={{ overflow: "hidden" }}>
+    <div
+      className="glass"
+      style={{
+        overflow: "hidden",
+        outline: isDraggingProject ? "2px dashed var(--indigo-400)" : "none",
+        opacity: isDraggingProject ? 0.55 : 1,
+      }}
+    >
       <div
+        draggable={sortable}
+        onDragStart={(e) => {
+          e.stopPropagation();
+          onProjectDragStart?.();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onProjectDragOver?.(e);
+        }}
+        onDragEnd={(e) => {
+          e.stopPropagation();
+          onProjectDragEnd?.();
+        }}
+        onDrop={(e) => e.preventDefault()}
+        className={sortable ? "project-header--sortable" : undefined}
         style={{
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
           padding: "0.85rem 1rem",
           borderBottom: collapsed ? "none" : "1px solid var(--color-border)",
+          cursor: sortable ? "grab" : "default",
         }}
       >
-        <DragHandle />
+        {sortable && <ProjectDragHandle />}
         <span
           style={{ fontSize: "0.9rem", opacity: 0.7, cursor: "pointer" }}
           onClick={onToggleCollapse}
@@ -500,7 +525,8 @@ export function ProjectTasksPanel({
       ) : (
         <>
           <p style={{ margin: "0 0 1rem", fontSize: "0.88rem", opacity: 0.75 }}>
-            Drag projects or tasks using the ⋮⋮ handle to reorder (top = highest priority).
+            <strong style={{ color: "var(--indigo-400)" }}>Purple grip</strong> on each project title bar = drag projects.
+            Small grip on each task = drag tasks within a project. Top = highest priority.
           </p>
 
           <div className="glass" style={{ padding: "1rem", marginBottom: "1.25rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -519,45 +545,33 @@ export function ProjectTasksPanel({
 
           {status && <p className="status-msg" style={{ marginBottom: "0.75rem" }}>{status}</p>}
 
-          {projects.map((project) => {
-            const isDragging = dragProjectId === project.id;
-            return (
-              <div
-                key={project.id}
-                draggable
-                onDragStart={() => setDragProjectId(project.id)}
-                onDragOver={(e) => {
+          {projects.map((project) => (
+            <div key={project.id} style={{ marginBottom: "1rem" }}>
+              <ProjectSection
+                project={project}
+                tasks={tasksForProject(project.id)}
+                collapsed={!!collapsed[project.id]}
+                isDraggingProject={dragProjectId === project.id}
+                onProjectDragStart={() => setDragProjectId(project.id)}
+                onProjectDragOver={(e) => {
                   e.preventDefault();
                   if (dragProjectId && dragProjectId !== project.id) {
                     moveProject(dragProjectId, project.id);
                   }
                 }}
-                onDragEnd={finishProjectDrag}
-                onDrop={(e) => e.preventDefault()}
-                style={{
-                  marginBottom: "1rem",
-                  opacity: isDragging ? 0.45 : 1,
-                  borderRadius: "var(--radius-md)",
-                  outline: isDragging ? "2px dashed var(--indigo-400)" : "none",
-                }}
-              >
-                <ProjectSection
-                  project={project}
-                  tasks={tasksForProject(project.id)}
-                  collapsed={!!collapsed[project.id]}
-                  onToggleCollapse={() =>
-                    setCollapsed((c) => ({ ...c, [project.id]: !c[project.id] }))
-                  }
-                  onRename={(name) => renameProject(project.id, name)}
-                  onDeleteProject={() => removeProject(project.id)}
-                  onAddTask={(title, due) => addTask(project.id, title, due)}
-                  onToggleTask={toggleTask}
-                  onDeleteTask={removeTask}
-                  onReorderTasks={reorderTasks}
-                />
-              </div>
-            );
-          })}
+                onProjectDragEnd={finishProjectDrag}
+                onToggleCollapse={() =>
+                  setCollapsed((c) => ({ ...c, [project.id]: !c[project.id] }))
+                }
+                onRename={(name) => renameProject(project.id, name)}
+                onDeleteProject={() => removeProject(project.id)}
+                onAddTask={(title, due) => addTask(project.id, title, due)}
+                onToggleTask={toggleTask}
+                onDeleteTask={removeTask}
+                onReorderTasks={reorderTasks}
+              />
+            </div>
+          ))}
 
           {projects.length === 0 && (
             <p className="glass" style={{ padding: "1rem", marginBottom: "1rem", opacity: 0.8 }}>
