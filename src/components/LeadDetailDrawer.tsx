@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Contact, Lead } from "@/lib/types/database";
+import { formatDateAdded } from "@/lib/dates";
 import { ActivityFeed } from "./ActivityFeed";
 
 const STAGE_COLOR: Record<string, string> = {
@@ -115,6 +116,9 @@ export function LeadDetailDrawer({
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: "1.2rem" }}>{lead.name}</h2>
+            <p style={{ margin: "0.35rem 0 0", fontSize: "0.82rem", opacity: 0.65 }}>
+              Added {formatDateAdded(lead.created_at)}
+            </p>
             <span
               style={{
                 display: "inline-block",

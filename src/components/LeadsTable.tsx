@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Contact, Lead } from "@/lib/types/database";
+import { formatDateAdded } from "@/lib/dates";
 import { LeadDetailDrawer } from "./LeadDetailDrawer";
 
 export function LeadsTable({
@@ -16,8 +17,8 @@ export function LeadsTable({
   demoMode?: boolean;
 }) {
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<keyof Lead>("name");
-  const [sortAsc, setSortAsc] = useState(true);
+  const [sortKey, setSortKey] = useState<keyof Lead>("created_at");
+  const [sortAsc, setSortAsc] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
 
   const filtered = useMemo(() => {
@@ -95,6 +96,7 @@ export function LeadsTable({
           <thead>
             <tr>
               <th onClick={() => handleSort("name")}>Name</th>
+              <th onClick={() => handleSort("created_at")}>Date added</th>
               <th onClick={() => handleSort("email")}>Email</th>
               <th onClick={() => handleSort("phone")}>Phone</th>
               <th>Tags</th>
@@ -114,6 +116,9 @@ export function LeadsTable({
               return (
               <tr key={l.id} style={{ cursor: "pointer" }}>
                 <td onClick={() => setActiveLead(l)}>{l.name}</td>
+                <td onClick={() => setActiveLead(l)} style={{ whiteSpace: "nowrap" }}>
+                  {formatDateAdded(l.created_at)}
+                </td>
                 <td onClick={() => setActiveLead(l)}>{l.email ?? "—"}</td>
                 <td onClick={() => setActiveLead(l)}>{l.phone ?? "—"}</td>
                 <td onClick={() => setActiveLead(l)}>{l.tags.join(", ") || "—"}</td>
@@ -158,7 +163,7 @@ export function LeadsTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7}>No leads yet.</td>
+                <td colSpan={8}>No leads yet.</td>
               </tr>
             )}
           </tbody>

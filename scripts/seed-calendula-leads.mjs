@@ -37,9 +37,10 @@ const LEADS = [
   },
   {
     name: "James and Tina Wood",
-    email: null,
+    email: "tinagwood@gmail.com",
     phone: "325-233-7026",
-    note: "Open house visitor — 1220 Calendula Trl.",
+    note:
+      "They are looking for a single story home. Currently live in Mayfield Ranch. They have 4 toddler grand kids.",
   },
 ];
 

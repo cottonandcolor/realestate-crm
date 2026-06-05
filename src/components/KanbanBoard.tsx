@@ -25,6 +25,9 @@ export function KanbanBoard({
   const [newDue, setNewDue] = useState("");
   const [addingStatus, setAddingStatus] = useState<TaskStatus | null>(null);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [dueDraft, setDueDraft] = useState("");
 
   function tasksFor(status: TaskStatus) {
     return tasks.filter((t) => t.status === status);
@@ -63,6 +66,33 @@ export function KanbanBoard({
       setAddingStatus(null);
     }
     setSaving(false);
+  }
+
+  function startEdit(task: Task) {
+    setEditingId(task.id);
+    setTitleDraft(task.title);
+    setDueDraft(task.due_at ? task.due_at.slice(0, 10) : "");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setTitleDraft("");
+    setDueDraft("");
+  }
+
+  async function saveEdit(id: string) {
+    const title = titleDraft.trim();
+    if (!title) return;
+    const due_at = dueDraft ? new Date(dueDraft).toISOString() : null;
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, title, due_at } : t))
+    );
+    cancelEdit();
+    await fetch(`/api/tasks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, due_at }),
+    });
   }
 
   async function scheduleShowing(task: Task) {
@@ -128,16 +158,62 @@ export function KanbanBoard({
               {tasksFor(status).map((task) => (
                 <li
                   key={task.id}
-                  draggable
+                  draggable={editingId !== task.id}
                   onDragStart={() => setDraggingId(task.id)}
-                  onDoubleClick={() => scheduleShowing(task)}
+                  onDoubleClick={() => editingId !== task.id && scheduleShowing(task)}
                   title="Double-click to schedule showing"
+                  style={{ position: "relative" }}
                 >
-                  {task.title}
-                  {task.due_at && (
-                    <small style={{ display: "block", opacity: 0.7 }}>
-                      {new Date(task.due_at).toLocaleDateString()}
-                    </small>
+                  {editingId === task.id ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                      <input
+                        className="input"
+                        value={titleDraft}
+                        onChange={(e) => setTitleDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit(task.id);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        style={{ maxWidth: "none", margin: 0, fontSize: "0.85rem" }}
+                        autoFocus
+                      />
+                      <input
+                        type="date"
+                        className="input"
+                        value={dueDraft}
+                        onChange={(e) => setDueDraft(e.target.value)}
+                        style={{ maxWidth: "none", margin: 0, fontSize: "0.82rem" }}
+                      />
+                      <div style={{ display: "flex", gap: "0.3rem" }}>
+                        <button type="button" className="btn btn-primary" style={{ flex: 1, fontSize: "0.78rem" }} onClick={() => saveEdit(task.id)}>
+                          Save
+                        </button>
+                        <button type="button" className="btn" style={{ fontSize: "0.78rem" }} onClick={cancelEdit}>
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.35rem" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {task.title}
+                          {task.due_at && (
+                            <small style={{ display: "block", opacity: 0.7 }}>
+                              {new Date(task.due_at).toLocaleDateString()}
+                            </small>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => startEdit(task)}
+                          style={{ fontSize: "0.72rem", padding: "0.15rem 0.45rem", flexShrink: 0 }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </>
                   )}
                 </li>
               ))}

@@ -30,19 +30,29 @@ function ProjectDragHandle() {
   );
 }
 
+function dueInputValue(iso: string | null): string {
+  if (!iso) return "";
+  return iso.slice(0, 10);
+}
+
 function SortableTaskList({
   tasks,
   onReorder,
   onToggle,
+  onEdit,
   onDelete,
 }: {
   tasks: Task[];
   onReorder: (orderedIds: string[]) => void;
   onToggle: (id: string, done: boolean) => void;
+  onEdit: (id: string, title: string, due: string) => void;
   onDelete: (id: string) => void;
 }) {
   const [ordered, setOrdered] = useState(() => sortTasksByOrder(tasks));
   const [dragId, setDragId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [dueDraft, setDueDraft] = useState("");
 
   useEffect(() => {
     if (!dragId) setOrdered(sortTasksByOrder(tasks));
@@ -63,16 +73,37 @@ function SortableTaskList({
     setDragId(null);
   }
 
+  function startEdit(task: Task) {
+    setEditingId(task.id);
+    setTitleDraft(task.title);
+    setDueDraft(dueInputValue(task.due_at));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setTitleDraft("");
+    setDueDraft("");
+  }
+
+  function saveEdit(id: string) {
+    const title = titleDraft.trim();
+    if (!title) return;
+    onEdit(id, title, dueDraft);
+    cancelEdit();
+  }
+
   return (
     <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
       {ordered.map((task) => {
         const done = task.status === "done";
         const isDragging = dragId === task.id;
+        const isEditing = editingId === task.id;
         return (
           <li
             key={task.id}
-            draggable
+            draggable={!isEditing}
             onDragStart={(e) => {
+              if (isEditing) return;
               e.stopPropagation();
               setDragId(task.id);
             }}
@@ -89,7 +120,7 @@ function SortableTaskList({
               padding: "0.5rem 0.35rem",
               borderBottom: "1px solid rgba(255,255,255,0.06)",
               opacity: done ? 0.55 : isDragging ? 0.4 : 1,
-              background: isDragging ? "rgba(99,102,241,0.12)" : "transparent",
+              background: isDragging ? "rgba(99,102,241,0.12)" : isEditing ? "rgba(99,102,241,0.08)" : "transparent",
               borderRadius: "var(--radius-sm)",
             }}
           >
@@ -99,24 +130,73 @@ function SortableTaskList({
               checked={done}
               onChange={() => onToggle(task.id, !done)}
               onClick={(e) => e.stopPropagation()}
+              disabled={isEditing}
               style={{ marginTop: "0.35rem", accentColor: "var(--indigo-500)", cursor: "pointer" }}
             />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
-              {task.due_at && (
-                <small style={{ display: "block", opacity: 0.65, marginTop: "0.15rem" }}>
-                  Due {new Date(task.due_at).toLocaleDateString()}
-                </small>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => onDelete(task.id)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#e53e3e", fontSize: "0.85rem", padding: 0 }}
-              title="Delete task"
-            >
-              ✕
-            </button>
+            {isEditing ? (
+              <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                <input
+                  className="input"
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveEdit(task.id);
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                  style={{ margin: 0, fontSize: "0.85rem" }}
+                  autoFocus
+                />
+                <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", alignItems: "center" }}>
+                  <input
+                    type="date"
+                    className="input"
+                    value={dueDraft}
+                    onChange={(e) => setDueDraft(e.target.value)}
+                    style={{ width: "auto", margin: 0, fontSize: "0.82rem" }}
+                  />
+                  <button type="button" className="btn btn-primary" style={{ fontSize: "0.78rem" }} onClick={() => saveEdit(task.id)}>
+                    Save
+                  </button>
+                  <button type="button" className="btn" style={{ fontSize: "0.78rem" }} onClick={cancelEdit}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
+                onDoubleClick={() => startEdit(task)}
+                title="Double-click to edit"
+              >
+                <span style={{ textDecoration: done ? "line-through" : "none" }}>{task.title}</span>
+                {task.due_at && (
+                  <small style={{ display: "block", opacity: 0.65, marginTop: "0.15rem" }}>
+                    Due {new Date(task.due_at).toLocaleDateString()}
+                  </small>
+                )}
+              </div>
+            )}
+            {!isEditing && (
+              <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0, alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => startEdit(task)}
+                  style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem" }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => onDelete(task.id)}
+                  style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem", color: "#e53e3e" }}
+                  title="Delete task"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </li>
         );
       })}
@@ -133,6 +213,7 @@ function ProjectSection({
   onDeleteProject,
   onAddTask,
   onToggleTask,
+  onEditTask,
   onDeleteTask,
   onReorderTasks,
   isDraggingProject = false,
@@ -148,6 +229,7 @@ function ProjectSection({
   onDeleteProject: () => void;
   onAddTask: (title: string, due: string) => void;
   onToggleTask: (id: string, done: boolean) => void;
+  onEditTask: (id: string, title: string, due: string) => void;
   onDeleteTask: (id: string) => void;
   onReorderTasks: (orderedIds: string[]) => void;
   isDraggingProject?: boolean;
@@ -274,11 +356,12 @@ function ProjectSection({
               tasks={tasks}
               onReorder={onReorderTasks}
               onToggle={onToggleTask}
+              onEdit={onEditTask}
               onDelete={onDeleteTask}
             />
           )}
           <p style={{ margin: "0.5rem 0 0", fontSize: "0.75rem", opacity: 0.45 }}>
-            Drag the ⋮⋮ handle to change priority order
+            Drag the ⋮⋮ handle to change priority order · Click <strong>Edit</strong> or double-click a task title to change it
           </p>
           <div
             style={{ display: "flex", gap: "0.4rem", marginTop: "0.75rem", flexWrap: "wrap" }}
@@ -493,6 +576,18 @@ export function ProjectTasksPanel({
     });
   }
 
+  async function updateTask(id: string, title: string, due: string) {
+    const due_at = due ? new Date(due).toISOString() : null;
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, title, due_at } : t))
+    );
+    await fetch(`/api/tasks/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, due_at }),
+    });
+  }
+
   async function removeTask(id: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
     await fetch(`/api/tasks/${id}`, { method: "DELETE" });
@@ -582,6 +677,7 @@ export function ProjectTasksPanel({
                 onDeleteProject={() => removeProject(project.id)}
                 onAddTask={(title, due) => addTask(project.id, title, due)}
                 onToggleTask={toggleTask}
+                onEditTask={updateTask}
                 onDeleteTask={removeTask}
                 onReorderTasks={reorderTasks}
               />
@@ -610,6 +706,7 @@ export function ProjectTasksPanel({
                     tasks={unassigned}
                     onReorder={reorderTasks}
                     onToggle={toggleTask}
+                    onEdit={updateTask}
                     onDelete={removeTask}
                   />
                 )}
