@@ -1,10 +1,20 @@
+export type LeaseListingType = "condo" | "sfh" | "townhome" | "rental";
+
+export const LEASE_TYPE_LABELS: Record<LeaseListingType, string> = {
+  condo: "Condo",
+  sfh: "Single Family",
+  townhome: "Townhome",
+  rental: "Rental",
+};
+
 export interface LeaseListing {
   id: string;
   address: string;
   city: string;
   leaseStart: string;
   leaseEnd: string;
-  tenants: string[];
+  contacts: string[];
+  type: LeaseListingType;
 }
 
 /** Handwritten lease roster (Jun 2026) */
@@ -15,7 +25,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Cedar Park",
     leaseStart: "2026-06-15",
     leaseEnd: "2028-05-31",
-    tenants: ["Anitha Mareedu"],
+    contacts: ["Anitha Mareedu"],
+    type: "condo",
   },
   {
     id: "lease-002",
@@ -23,7 +34,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Cedar Park",
     leaseStart: "2026-06-15",
     leaseEnd: "2028-05-31",
-    tenants: ["Muriel Wang"],
+    contacts: ["Muriel Wang"],
+    type: "condo",
   },
   {
     id: "lease-003",
@@ -31,7 +43,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Hutto",
     leaseStart: "2026-06-01",
     leaseEnd: "2027-05-31",
-    tenants: ["Vinayak Shanbhogue"],
+    contacts: ["Vinayak Shanbhogue"],
+    type: "sfh",
   },
   {
     id: "lease-004",
@@ -39,7 +52,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Hutto",
     leaseStart: "2026-06-01",
     leaseEnd: "2027-05-31",
-    tenants: ["Manuel"],
+    contacts: ["Manuel"],
+    type: "sfh",
   },
   {
     id: "lease-005",
@@ -47,7 +61,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Cedar Park",
     leaseStart: "2026-02-15",
     leaseEnd: "2027-02-14",
-    tenants: ["Sundarraman Kalyanaraman"],
+    contacts: ["Sundarraman Kalyanaraman"],
+    type: "sfh",
   },
   {
     id: "lease-006",
@@ -55,7 +70,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Cedar Park",
     leaseStart: "2026-02-15",
     leaseEnd: "2027-02-14",
-    tenants: ["Zoe Kim"],
+    contacts: ["Zoe Kim"],
+    type: "sfh",
   },
   {
     id: "lease-007",
@@ -63,7 +79,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Leander",
     leaseStart: "2026-07-01",
     leaseEnd: "2027-06-30",
-    tenants: ["Katelyn Rodriguez", "Paul Youmans"],
+    contacts: ["Katelyn Rodriguez", "Paul Youmans"],
+    type: "sfh",
   },
   {
     id: "lease-008",
@@ -71,7 +88,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Leander",
     leaseStart: "2026-07-01",
     leaseEnd: "2027-06-30",
-    tenants: ["Vinayak Shanbhogue"],
+    contacts: ["Vinayak Shanbhogue"],
+    type: "sfh",
   },
   {
     id: "lease-009",
@@ -79,7 +97,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Leander",
     leaseStart: "2026-03-16",
     leaseEnd: "2027-03-31",
-    tenants: ["Juhi Kumar", "Varun"],
+    contacts: ["Juhi Kumar", "Varun"],
+    type: "sfh",
   },
   {
     id: "lease-010",
@@ -87,7 +106,8 @@ export const LEASE_LISTINGS: LeaseListing[] = [
     city: "Pflugerville",
     leaseStart: "2026-05-01",
     leaseEnd: "2027-05-31",
-    tenants: ["Brandon Taylor", "Tavia Taylor"],
+    contacts: ["Brandon Taylor", "Tavia Taylor"],
+    type: "sfh",
   },
 ];
 

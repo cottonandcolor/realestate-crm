@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LEASE_LISTINGS, formatLeaseDate, type LeaseListing } from "@/lib/leaseListings";
+import { LEASE_LISTINGS, LEASE_TYPE_LABELS, formatLeaseDate, type LeaseListing } from "@/lib/leaseListings";
 
-type SortKey = "address" | "city" | "leaseStart" | "leaseEnd" | "tenants";
+type SortKey = "address" | "city" | "leaseStart" | "leaseEnd" | "contacts" | "type";
 
 function leaseStatus(end: string): "active" | "ending-soon" | "ended" {
   const now = new Date();
@@ -33,15 +33,19 @@ export function LeaseListingsPanel() {
         (l) =>
           l.address.toLowerCase().includes(q) ||
           l.city.toLowerCase().includes(q) ||
-          l.tenants.some((t) => t.toLowerCase().includes(q))
+          l.contacts.some((t) => t.toLowerCase().includes(q)) ||
+          LEASE_TYPE_LABELS[l.type].toLowerCase().includes(q)
       );
     }
     return [...rows].sort((a, b) => {
       let av: string;
       let bv: string;
-      if (sortKey === "tenants") {
-        av = a.tenants.join(", ");
-        bv = b.tenants.join(", ");
+      if (sortKey === "contacts") {
+        av = a.contacts.join(", ");
+        bv = b.contacts.join(", ");
+      } else if (sortKey === "type") {
+        av = LEASE_TYPE_LABELS[a.type];
+        bv = LEASE_TYPE_LABELS[b.type];
       } else {
         av = a[sortKey];
         bv = b[sortKey];
@@ -81,7 +85,7 @@ export function LeaseListingsPanel() {
         type="text"
         className="search"
         style={{ marginBottom: "1rem" }}
-        placeholder="Search address, city, or tenant…"
+        placeholder="Search address, city, contact, or type…"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -93,7 +97,8 @@ export function LeaseListingsPanel() {
             <th onClick={() => handleSort("city")}>City</th>
             <th onClick={() => handleSort("leaseStart")}>Lease start</th>
             <th onClick={() => handleSort("leaseEnd")}>Lease end</th>
-            <th onClick={() => handleSort("tenants")}>Tenant(s)</th>
+            <th onClick={() => handleSort("contacts")}>Contacts</th>
+            <th onClick={() => handleSort("type")}>Type</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -103,7 +108,7 @@ export function LeaseListingsPanel() {
           ))}
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={6}>No lease listings match your search.</td>
+              <td colSpan={7}>No lease listings match your search.</td>
             </tr>
           )}
         </tbody>
@@ -122,7 +127,8 @@ function LeaseRow({ listing }: { listing: LeaseListing }) {
       <td>{listing.city}</td>
       <td style={{ whiteSpace: "nowrap" }}>{formatLeaseDate(listing.leaseStart)}</td>
       <td style={{ whiteSpace: "nowrap" }}>{formatLeaseDate(listing.leaseEnd)}</td>
-      <td>{listing.tenants.join(", ")}</td>
+      <td>{listing.contacts.join(", ")}</td>
+      <td>{LEASE_TYPE_LABELS[listing.type]}</td>
       <td>
         <span
           style={{
