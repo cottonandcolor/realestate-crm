@@ -10,6 +10,7 @@ import {
   formatLeaseDate,
   formatProperty,
   isLeaseEndingWithinDays,
+  createEmptyLeaseListing,
   loadLeaseListings,
   parseContactsInput,
   saveLeaseListings,
@@ -42,6 +43,7 @@ export function LeaseListingsPanel() {
   const [sortKey, setSortKey] = useState<SortKey>("leaseEnd");
   const [sortAsc, setSortAsc] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
     setListings(loadLeaseListings());
@@ -54,6 +56,11 @@ export function LeaseListingsPanel() {
 
   function updateListing(id: string, patch: Partial<LeaseListing>) {
     persist(listings.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }
+
+  function addListing(entry: LeaseListing) {
+    persist([entry, ...listings]);
+    setShowAddForm(false);
   }
 
   const endingSoon = useMemo(
@@ -118,9 +125,19 @@ export function LeaseListingsPanel() {
         }}
       >
         <h2 style={{ margin: 0 }}>Lease Listings</h2>
-        <span style={{ fontSize: "0.85rem", opacity: 0.7 }}>
-          {filtered.length} lease{filtered.length !== 1 ? "s" : ""}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+            {listings.length} lease{listings.length !== 1 ? "s" : ""}
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ fontSize: "0.82rem" }}
+            onClick={() => setShowAddForm((v) => !v)}
+          >
+            {showAddForm ? "Cancel" : "+ Add lease"}
+          </button>
+        </div>
       </div>
 
       <LeaseEndingAlert listings={endingSoon} />
@@ -134,8 +151,15 @@ export function LeaseListingsPanel() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
+      {showAddForm && (
+        <AddLeaseForm
+          onAdd={addListing}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
+
       <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-        Click <strong>Edit</strong> on any row to change property, dates, contacts, or type.
+        Click <strong>+ Add lease</strong> to create a new entry, or <strong>Edit</strong> on any row to update it.
       </p>
 
       <table className="glass">
@@ -173,6 +197,96 @@ export function LeaseListingsPanel() {
         </tbody>
       </table>
     </section>
+  );
+}
+
+function AddLeaseForm({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (entry: LeaseListing) => void;
+  onCancel: () => void;
+}) {
+  const empty = createEmptyLeaseListing();
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [leaseStart, setLeaseStart] = useState(empty.leaseStart);
+  const [leaseEnd, setLeaseEnd] = useState(empty.leaseEnd);
+  const [contactsDraft, setContactsDraft] = useState("");
+  const [type, setType] = useState<LeaseListingType>("tenant-rep");
+
+  function handleAdd() {
+    const addressTrim = address.trim();
+    const cityTrim = city.trim();
+    if (!addressTrim || !cityTrim || !leaseStart || !leaseEnd) return;
+    onAdd({
+      ...createEmptyLeaseListing(),
+      address: addressTrim,
+      city: cityTrim,
+      leaseStart,
+      leaseEnd,
+      contacts: parseContactsInput(contactsDraft),
+      type,
+    });
+  }
+
+  return (
+    <div className="glass" style={{ padding: "1rem", marginBottom: "1rem" }}>
+      <h3 style={{ margin: "0 0 0.75rem", fontSize: "0.95rem" }}>New lease listing</h3>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "0.6rem",
+          alignItems: "end",
+        }}
+      >
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Address
+          <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St" style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          City
+          <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Cedar Park" style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Lease start
+          <input type="date" className="input" value={leaseStart} onChange={(e) => setLeaseStart(e.target.value)} style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Lease end
+          <input type="date" className="input" value={leaseEnd} onChange={(e) => setLeaseEnd(e.target.value)} style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Contacts
+          <input className="input" value={contactsDraft} onChange={(e) => setContactsDraft(e.target.value)} placeholder="Name, comma-separated" style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Type
+          <select className="input" value={type} onChange={(e) => setType(e.target.value as LeaseListingType)} style={{ ...inputStyle, minWidth: "8.5rem" }}>
+            {LEASE_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div style={{ display: "flex", gap: "0.4rem" }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ fontSize: "0.82rem" }}
+            disabled={!address.trim() || !city.trim() || !leaseStart || !leaseEnd}
+            onClick={handleAdd}
+          >
+            Add lease
+          </button>
+          <button type="button" className="btn" style={{ fontSize: "0.82rem" }} onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

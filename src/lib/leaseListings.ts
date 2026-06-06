@@ -51,6 +51,25 @@ export function parseContactsInput(value: string): string[] {
     .filter(Boolean);
 }
 
+export function createLeaseListingId(): string {
+  return `lease-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+export function createEmptyLeaseListing(): LeaseListing {
+  const today = new Date();
+  const endDate = new Date(today);
+  endDate.setFullYear(endDate.getFullYear() + 1);
+  return {
+    id: createLeaseListingId(),
+    address: "",
+    city: "",
+    leaseStart: today.toISOString().slice(0, 10),
+    leaseEnd: endDate.toISOString().slice(0, 10),
+    contacts: [],
+    type: "tenant-rep",
+  };
+}
+
 export interface LeaseListing {
   id: string;
   address: string;
