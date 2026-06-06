@@ -9,6 +9,7 @@ import {
   isContactDueToday,
   isContactOverdue,
 } from "@/lib/dates";
+import { normalizeLead } from "@/lib/leads/db";
 import { LeadDetailDrawer } from "./LeadDetailDrawer";
 
 const STAGE_OPTIONS: { value: LeadStage; label: string }[] = [
@@ -118,7 +119,7 @@ export function LeadsTable({
         l.name.toLowerCase().includes(term) ||
         (l.email ?? "").toLowerCase().includes(term) ||
         (l.phone ?? "").includes(term) ||
-        l.tags.join(" ").toLowerCase().includes(term)
+        (l.tags ?? []).join(" ").toLowerCase().includes(term)
     );
     rows = [...rows].sort((a, b) => {
       const av = String(a[sortKey] ?? "");
@@ -161,7 +162,8 @@ export function LeadsTable({
     });
     if (res.ok) {
       const body = await res.json();
-      const { warnings, ...updated } = body as Lead & { warnings?: string[] };
+      const warnings = (body as { warnings?: string[] }).warnings;
+      const updated = normalizeLead(body);
       onLeadUpdated(updated);
       if (warnings?.length) alert(warnings[0]);
       return updated;
@@ -214,7 +216,8 @@ export function LeadsTable({
     });
     if (res.ok) {
       const created = await res.json();
-      const { warnings, ...lead } = created as Lead & { warnings?: string[] };
+      const warnings = (created as { warnings?: string[] }).warnings;
+      const lead = normalizeLead(created);
       onLeadAdded(lead);
       setShowAddForm(false);
       if (warnings?.length) alert(warnings[0]);
@@ -293,7 +296,7 @@ export function LeadsTable({
         )}
         <ContactDueBanner leads={dueLeads} onOpenLead={setActiveLead} />
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-          Click <strong>+ Add lead</strong> to create a new entry — the person does <strong>not</strong> need to be in Contacts first. Only <strong>Name</strong> is required. Set a <strong>Contact by</strong> date for follow-ups (optional).
+          Click <strong>+ Add lead</strong> to create a new entry — the person does <strong>not</strong> need to be in Contacts first. Use <strong>Edit</strong> or the <strong>Stage</strong> / <strong>Contact by</strong> fields to update a row. Click a name or <strong>Notes</strong> for activity history.
         </p>
         <table className="glass">
           <thead>
@@ -582,7 +585,7 @@ function LeadRow({
   const [name, setName] = useState(lead.name);
   const [email, setEmail] = useState(lead.email ?? "");
   const [phone, setPhone] = useState(lead.phone ?? "");
-  const [tagsDraft, setTagsDraft] = useState(lead.tags.join(", "));
+  const [tagsDraft, setTagsDraft] = useState((lead.tags ?? []).join(", "));
   const [stage, setStage] = useState<LeadStage>(lead.stage);
 
   useEffect(() => {
@@ -590,7 +593,7 @@ function LeadRow({
       setName(lead.name);
       setEmail(lead.email ?? "");
       setPhone(lead.phone ?? "");
-      setTagsDraft(lead.tags.join(", "));
+      setTagsDraft((lead.tags ?? []).join(", "));
       setStage(lead.stage);
     }
   }, [lead, isEditing]);
@@ -658,20 +661,36 @@ function LeadRow({
 
   return (
     <tr>
-      <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.name}</td>
-      <td style={{ whiteSpace: "nowrap", cursor: "pointer" }} onClick={onOpen}>
-        {formatDateAdded(lead.created_at)}
+      <td>
+        <button
+          type="button"
+          onClick={onOpen}
+          style={{
+            background: "none",
+            border: "none",
+            padding: 0,
+            color: "inherit",
+            font: "inherit",
+            cursor: "pointer",
+            textAlign: "left",
+            textDecoration: "underline",
+            textUnderlineOffset: "2px",
+          }}
+        >
+          {lead.name}
+        </button>
       </td>
+      <td style={{ whiteSpace: "nowrap", opacity: 0.85 }}>{formatDateAdded(lead.created_at)}</td>
       <td>
         <ContactByInput value={lead.contact_by} onChange={onContactByChange} />
       </td>
-      <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.email ?? "—"}</td>
-      <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.phone ?? "—"}</td>
+      <td>{lead.email ?? "—"}</td>
+      <td>{lead.phone ?? "—"}</td>
       <td>
         <StageSelect value={lead.stage} onChange={onStageChange} compact />
       </td>
-      <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.tags.join(", ") || "—"}</td>
-      <td style={{ cursor: "pointer" }} onClick={onOpen}>
+      <td>{(lead.tags ?? []).join(", ") || "—"}</td>
+      <td>
         {linkedName ? (
           <span style={{ color: "var(--indigo-400)" }}>{linkedName}</span>
         ) : (
@@ -679,7 +698,7 @@ function LeadRow({
             type="button"
             className="btn"
             style={{ fontSize: "0.78rem", padding: "0.15rem 0.5rem" }}
-            onClick={(e) => { e.stopPropagation(); onOpen(); }}
+            onClick={onOpen}
           >
             Link contact
           </button>

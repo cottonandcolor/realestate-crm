@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Contact, Lead } from "@/lib/types/database";
 import { formatDateAdded } from "@/lib/dates";
+import { normalizeLead } from "@/lib/leads/db";
 import { ActivityFeed } from "./ActivityFeed";
 
 const STAGE_COLOR: Record<string, string> = {
@@ -28,10 +30,15 @@ export function LeadDetailDrawer({
   onClose: () => void;
   onLeadUpdated: (lead: Lead) => void;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
   const [linking, setLinking] = useState(false);
   const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const linkedContact = useMemo(
     () => (lead.contact_id ? contacts.find((c) => c.id === lead.contact_id) : undefined),
@@ -74,7 +81,7 @@ export function LeadDetailDrawer({
     });
     setLinking(false);
     if (res.ok) {
-      const updated = await res.json();
+      const updated = normalizeLead(await res.json());
       onLeadUpdated(updated);
       setLinkOpen(false);
       setContactSearch("");
@@ -84,7 +91,9 @@ export function LeadDetailDrawer({
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       <div
         onClick={onClose}
@@ -98,6 +107,10 @@ export function LeadDetailDrawer({
       />
 
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Lead details for ${lead.name}`}
+        onClick={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
           top: 0,
@@ -106,11 +119,13 @@ export function LeadDetailDrawer({
           width: "min(480px, 100vw)",
           zIndex: 201,
           background: "var(--color-surface, #1a1f2e)",
-          borderLeft: "1px solid rgba(255,255,255,0.1)",
+          color: "var(--color-text, #e8edf5)",
+          borderLeft: "1px solid var(--color-border, rgba(255,255,255,0.1))",
           display: "flex",
           flexDirection: "column",
           overflowY: "auto",
           padding: "1.5rem",
+          boxShadow: "-8px 0 32px rgba(0,0,0,0.25)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
@@ -263,9 +278,9 @@ export function LeadDetailDrawer({
               Source: <strong>{lead.source}</strong>
             </p>
           )}
-          {lead.tags.length > 0 && (
+          {(lead.tags ?? []).length > 0 && (
             <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.2rem" }}>
-              {lead.tags.map((tag) => (
+              {(lead.tags ?? []).map((tag) => (
                 <span
                   key={tag}
                   style={{
@@ -285,6 +300,7 @@ export function LeadDetailDrawer({
         <h3 style={{ margin: "0 0 0.75rem", fontSize: "0.95rem", opacity: 0.85 }}>Activity</h3>
         <ActivityFeed leadId={lead.id} contactId={lead.contact_id ?? undefined} />
       </div>
-    </>
+    </>,
+    document.body
   );
 }

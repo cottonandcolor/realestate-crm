@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ensureUserOrg, getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { getDemoStore } from "@/lib/demo/store";
-import { withContactByDefault } from "@/lib/leads/db";
+import { normalizeLead } from "@/lib/leads/db";
 import type { Lead } from "@/lib/types/database";
 
 export default async function DashboardPage() {
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
 
   // Attach leads to contacts manually (avoids relational FK schema cache issues)
   const rawContacts = contactsFresh ?? [];
-  const allLeads = (leadsFresh.data ?? []).map((l) => withContactByDefault(l as Lead));
+  const allLeads = (leadsFresh.data ?? []).map((l) => normalizeLead(l as Lead));
   const contactsWithLeads = rawContacts.map((c) => ({
     ...c,
     leads: allLeads

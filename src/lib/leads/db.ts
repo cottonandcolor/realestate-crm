@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Lead } from "@/lib/types/database";
 
 export function isContactByColumnError(message: string | undefined): boolean {
   if (!message) return false;
@@ -8,6 +9,21 @@ export function isContactByColumnError(message: string | undefined): boolean {
 
 export function withContactByDefault<T extends { contact_by?: string | null }>(row: T) {
   return { ...row, contact_by: row.contact_by ?? null };
+}
+
+/** Ensure API rows always have safe defaults for optional lead fields. */
+export function normalizeLead<T extends Partial<Lead>>(row: T): Lead {
+  const { warnings: _w, ...rest } = row as T & { warnings?: string[] };
+  return {
+    ...(rest as Lead),
+    tags: Array.isArray(rest.tags) ? rest.tags : [],
+    contact_by: rest.contact_by ?? null,
+    email: rest.email ?? null,
+    phone: rest.phone ?? null,
+    source: rest.source ?? null,
+    contact_id: rest.contact_id ?? null,
+    assigned_agent_id: rest.assigned_agent_id ?? null,
+  };
 }
 
 type LeadInsertRow = Record<string, unknown>;
