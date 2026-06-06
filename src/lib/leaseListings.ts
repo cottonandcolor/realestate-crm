@@ -12,9 +12,10 @@ export const LEASE_TYPE_LABELS: Record<LeaseListingType, string> = {
   tenant: "Tenant",
 };
 
+const LISTINGS_STORAGE_KEY = "crm_lease_listings";
 const TYPE_STORAGE_KEY = "crm_lease_listing_types";
 
-export function loadLeaseListingTypes(): Record<string, LeaseListingType> {
+function loadLegacyTypes(): Record<string, LeaseListingType> {
   if (typeof window === "undefined") return {};
   try {
     const raw = localStorage.getItem(TYPE_STORAGE_KEY);
@@ -24,10 +25,30 @@ export function loadLeaseListingTypes(): Record<string, LeaseListingType> {
   }
 }
 
-export function saveLeaseListingType(id: string, type: LeaseListingType) {
-  const saved = loadLeaseListingTypes();
-  saved[id] = type;
-  localStorage.setItem(TYPE_STORAGE_KEY, JSON.stringify(saved));
+export function loadLeaseListings(): LeaseListing[] {
+  if (typeof window === "undefined") return LEASE_LISTINGS;
+  try {
+    const raw = localStorage.getItem(LISTINGS_STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as LeaseListing[];
+    const legacyTypes = loadLegacyTypes();
+    if (Object.keys(legacyTypes).length > 0) {
+      return LEASE_LISTINGS.map((l) => ({ ...l, type: legacyTypes[l.id] ?? l.type }));
+    }
+    return LEASE_LISTINGS;
+  } catch {
+    return LEASE_LISTINGS;
+  }
+}
+
+export function saveLeaseListings(listings: LeaseListing[]) {
+  localStorage.setItem(LISTINGS_STORAGE_KEY, JSON.stringify(listings));
+}
+
+export function parseContactsInput(value: string): string[] {
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export interface LeaseListing {
