@@ -221,6 +221,36 @@ export function reorderDemoProjects(orderedIds: string[]) {
   });
 }
 
+export function addDemoLead(data: {
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  stage?: Lead["stage"];
+  source?: string | null;
+  tags?: string[];
+  contact_by?: string | null;
+  assigned_agent_id?: string | null;
+}): Lead {
+  const now = new Date().toISOString();
+  const lead: Lead = {
+    id: crypto.randomUUID(),
+    org_id: orgId,
+    name: data.name.trim(),
+    email: data.email?.trim() || null,
+    phone: data.phone?.trim() || null,
+    stage: data.stage ?? "new",
+    source: data.source?.trim() || null,
+    tags: data.tags ?? [],
+    contact_id: null,
+    assigned_agent_id: data.assigned_agent_id ?? null,
+    contact_by: data.contact_by ?? null,
+    created_at: now,
+    updated_at: now,
+  };
+  leads = [lead, ...leads];
+  return lead;
+}
+
 export function linkDemoLeadToContact(leadId: string, contactId: string): boolean {
   const lead = leads.find((l) => l.id === leadId);
   if (!lead) return false;

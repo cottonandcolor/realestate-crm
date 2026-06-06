@@ -93,12 +93,14 @@ export function LeadsTable({
   leads,
   contacts,
   onLeadUpdated,
+  onLeadAdded,
   onLeadDeleted,
   demoMode = false,
 }: {
   leads: Lead[];
   contacts: Contact[];
   onLeadUpdated: (lead: Lead) => void;
+  onLeadAdded: (lead: Lead) => void;
   onLeadDeleted: (id: string) => void;
   demoMode?: boolean;
 }) {
@@ -107,6 +109,7 @@ export function LeadsTable({
   const [sortAsc, setSortAsc] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
@@ -194,6 +197,26 @@ export function LeadsTable({
     [leads]
   );
 
+  async function addLead(data: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    stage: LeadStage;
+    tags: string[];
+    contact_by: string | null;
+  }) {
+    const res = await fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      onLeadAdded(created);
+      setShowAddForm(false);
+    }
+  }
+
   async function deleteLead(lead: Lead) {
     if (!confirm(`Delete lead "${lead.name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/leads/${lead.id}`, { method: "DELETE" });
@@ -219,11 +242,33 @@ export function LeadsTable({
       )}
 
       <section className="leads" id="leads">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "1rem",
+            flexWrap: "wrap",
+            gap: "0.5rem",
+          }}
+        >
           <h2 style={{ margin: 0 }}>Leads</h2>
-          <button type="button" className="btn" onClick={exportLeads} title="Export leads as CSV">
-            ⬇ Export CSV
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+              {leads.length} lead{leads.length !== 1 ? "s" : ""}
+            </span>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ fontSize: "0.82rem" }}
+              onClick={() => setShowAddForm((v) => !v)}
+            >
+              {showAddForm ? "Cancel" : "+ Add lead"}
+            </button>
+            <button type="button" className="btn" onClick={exportLeads} title="Export leads as CSV">
+              ⬇ Export CSV
+            </button>
+          </div>
         </div>
         <input
           type="text"
@@ -233,9 +278,15 @@ export function LeadsTable({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        {showAddForm && (
+          <AddLeadForm
+            onAdd={addLead}
+            onCancel={() => setShowAddForm(false)}
+          />
+        )}
         <ContactDueBanner leads={dueLeads} onOpenLead={setActiveLead} />
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-          Set a <strong>Contact by</strong> date for follow-ups — due leads appear in the banner above. Use the <strong>Stage</strong> dropdown to update pipeline status.
+          Click <strong>+ Add lead</strong> to create a new entry. Set a <strong>Contact by</strong> date for follow-ups — due leads appear in the banner above.
         </p>
         <table className="glass">
           <thead>
@@ -285,6 +336,100 @@ export function LeadsTable({
         </table>
       </section>
     </>
+  );
+}
+
+function AddLeadForm({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (data: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    stage: LeadStage;
+    tags: string[];
+    contact_by: string | null;
+  }) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [stage, setStage] = useState<LeadStage>("new");
+  const [tagsDraft, setTagsDraft] = useState("");
+  const [contactBy, setContactBy] = useState("");
+
+  function handleAdd() {
+    const nameTrim = name.trim();
+    if (!nameTrim) return;
+    onAdd({
+      name: nameTrim,
+      email: email.trim() || null,
+      phone: phone.trim() || null,
+      stage,
+      tags: parseTagsInput(tagsDraft),
+      contact_by: contactBy || null,
+    });
+    setName("");
+    setEmail("");
+    setPhone("");
+    setStage("new");
+    setTagsDraft("");
+    setContactBy("");
+  }
+
+  return (
+    <div className="glass" style={{ padding: "1rem", marginBottom: "1rem" }}>
+      <h3 style={{ margin: "0 0 0.75rem", fontSize: "0.95rem" }}>New lead</h3>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "0.6rem",
+          alignItems: "end",
+        }}
+      >
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Name *
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Email
+          <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Phone
+          <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Stage
+          <StageSelect value={stage} onChange={setStage} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Contact by
+          <input type="date" className="input" value={contactBy} onChange={(e) => setContactBy(e.target.value)} style={inputStyle} />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
+          Tags
+          <input className="input" value={tagsDraft} onChange={(e) => setTagsDraft(e.target.value)} placeholder="Buyer, referral" style={inputStyle} />
+        </label>
+        <div style={{ display: "flex", gap: "0.4rem" }}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ fontSize: "0.82rem" }}
+            disabled={!name.trim()}
+            onClick={handleAdd}
+          >
+            Add lead
+          </button>
+          <button type="button" className="btn" style={{ fontSize: "0.82rem" }} onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

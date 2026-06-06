@@ -167,6 +167,10 @@ export function DashboardTabs({
       }))
     );
   }
+
+  function handleLeadAdded(lead: Lead) {
+    setLeadsState((prev) => [lead, ...prev]);
+  }
   // Re-render when reminder acknowledgments change (stored in localStorage)
   const [, setAckVersion] = useState(0);
 
@@ -367,6 +371,7 @@ export function DashboardTabs({
             leads={leadsState}
             contacts={contacts}
             onLeadUpdated={handleLeadUpdated}
+            onLeadAdded={handleLeadAdded}
             onLeadDeleted={handleLeadDeleted}
             demoMode={demoMode}
           />
