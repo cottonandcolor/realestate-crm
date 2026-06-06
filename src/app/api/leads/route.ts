@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { addDemoLead } from "@/lib/demo/store";
+import { insertLeadRow } from "@/lib/leads/db";
 import type { LeadStage } from "@/lib/types/database";
 
 function optionalString(value: unknown): string | null {
@@ -63,12 +64,7 @@ export async function POST(request: Request) {
   };
   if (payload.contact_by) row.contact_by = payload.contact_by;
 
-  const { data, error } = await supabase
-    .from("leads")
-    .insert(row)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data, { status: 201 });
+  const { data, error, warnings } = await insertLeadRow(supabase, row);
+  if (error) return NextResponse.json({ error }, { status: 500 });
+  return NextResponse.json(warnings.length ? { ...data, warnings } : data, { status: 201 });
 }

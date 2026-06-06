@@ -160,8 +160,10 @@ export function LeadsTable({
       body: JSON.stringify(patch),
     });
     if (res.ok) {
-      const updated = await res.json();
+      const body = await res.json();
+      const { warnings, ...updated } = body as Lead & { warnings?: string[] };
       onLeadUpdated(updated);
+      if (warnings?.length) alert(warnings[0]);
       return updated;
     }
     return null;
@@ -212,8 +214,10 @@ export function LeadsTable({
     });
     if (res.ok) {
       const created = await res.json();
-      onLeadAdded(created);
+      const { warnings, ...lead } = created as Lead & { warnings?: string[] };
+      onLeadAdded(lead);
       setShowAddForm(false);
+      if (warnings?.length) alert(warnings[0]);
       return null;
     }
     const err = await res.json().catch(() => ({}));
@@ -289,7 +293,7 @@ export function LeadsTable({
         )}
         <ContactDueBanner leads={dueLeads} onOpenLead={setActiveLead} />
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-          Click <strong>+ Add lead</strong> to create a new entry. Set a <strong>Contact by</strong> date for follow-ups — due leads appear in the banner above.
+          Click <strong>+ Add lead</strong> to create a new entry — the person does <strong>not</strong> need to be in Contacts first. Only <strong>Name</strong> is required. Set a <strong>Contact by</strong> date for follow-ups (optional).
         </p>
         <table className="glass">
           <thead>

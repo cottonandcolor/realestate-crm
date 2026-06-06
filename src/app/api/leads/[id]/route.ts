@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { getDemoStore, linkDemoLeadToContact, updateDemoLead, deleteDemoLead } from "@/lib/demo/store";
+import { updateLeadRow } from "@/lib/leads/db";
 
 export async function PATCH(
   request: Request,
@@ -42,16 +43,9 @@ export async function PATCH(
     if (key in body) patch[key] = body[key] ?? null;
   }
 
-  const { data, error } = await supabase
-    .from("leads")
-    .update(patch)
-    .eq("id", id)
-    .eq("org_id", orgId)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  const { data, error, warnings } = await updateLeadRow(supabase, id, orgId, patch);
+  if (error) return NextResponse.json({ error }, { status: 500 });
+  return NextResponse.json(warnings.length ? { ...data, warnings } : data);
 }
 
 export async function DELETE(
