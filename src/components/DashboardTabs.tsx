@@ -394,7 +394,7 @@ export function DashboardTabs({
 
         {/* ── Tasks ────────────────────────────────── */}
         {active === "tasks" && (
-          <ProjectTasksPanel projects={projects} tasks={tasks} demoMode={demoMode} />
+          <ProjectTasksPanel projects={projects} tasks={tasks} contacts={contacts} demoMode={demoMode} />
         )}
 
         {/* ── Activity ─────────────────────────────── */}

@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Project, Task, TaskStatus } from "@/lib/types/database";
 import { sortProjectsByOrder } from "@/lib/projects/sort";
 import { sortTasksByOrder } from "@/lib/tasks/sort";
+import type { Contact } from "@/lib/types/database";
 import { KanbanBoard } from "./KanbanBoard";
+import { UpcomingRemindersBanner } from "./UpcomingRemindersBanner";
 
 type ViewMode = "projects" | "board";
 
@@ -411,10 +413,12 @@ function ProjectSection({
 export function ProjectTasksPanel({
   projects: initialProjects,
   tasks: initialTasks,
+  contacts = [],
   demoMode = false,
 }: {
   projects: Project[];
   tasks: Task[];
+  contacts?: Contact[];
   demoMode?: boolean;
 }) {
   const [view, setView] = useState<ViewMode>("projects");
@@ -595,6 +599,7 @@ export function ProjectTasksPanel({
 
   return (
     <section className="tasks" id="tasks">
+      <UpcomingRemindersBanner contacts={contacts} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
         <h2 style={{ margin: 0 }}>Tasks</h2>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
