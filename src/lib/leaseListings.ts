@@ -111,6 +111,10 @@ export const LEASE_LISTINGS: LeaseListing[] = [
   },
 ];
 
+export function formatProperty(listing: Pick<LeaseListing, "address" | "city">): string {
+  return `${listing.address}, ${listing.city}`;
+}
+
 export function formatLeaseDate(iso: string): string {
   const d = new Date(iso + "T12:00:00");
   if (Number.isNaN(d.getTime())) return "—";
