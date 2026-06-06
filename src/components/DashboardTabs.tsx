@@ -11,20 +11,23 @@ import { CalendarConnect } from "./CalendarConnect";
 import { ListingImport } from "./ListingImport";
 import { ExportPanel } from "./ExportPanel";
 import { ActivitiesTab } from "./ActivitiesTab";
+import { LeaseListingsPanel } from "./LeaseListingsPanel";
 import { useReminderNotifications } from "@/hooks/useReminderNotifications";
 import { getReminderAck, setReminderAck } from "@/lib/reminderAck";
+import { LEASE_LISTINGS } from "@/lib/leaseListings";
 
 type ContactWithLeads = Contact & { leads?: Pick<Lead, "id" | "name" | "stage">[] };
 
-type TabId = "overview" | "leads" | "contacts" | "listings" | "tasks" | "activity";
+type TabId = "overview" | "leads" | "contacts" | "listings" | "lease-listings" | "tasks" | "activity";
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: "overview",  label: "Overview",  icon: "📊" },
-  { id: "leads",     label: "Leads",     icon: "👤" },
-  { id: "contacts",  label: "Contacts",  icon: "📇" },
-  { id: "listings",  label: "Listings",  icon: "🏠" },
-  { id: "tasks",     label: "Tasks",     icon: "✓"  },
-  { id: "activity",  label: "Activity",  icon: "📋" },
+  { id: "overview",       label: "Overview",       icon: "📊" },
+  { id: "leads",          label: "Leads",          icon: "👤" },
+  { id: "contacts",       label: "Contacts",       icon: "📇" },
+  { id: "listings",       label: "Listings",       icon: "🏠" },
+  { id: "lease-listings", label: "Lease Listings", icon: "🔑" },
+  { id: "tasks",          label: "Tasks",          icon: "✓"  },
+  { id: "activity",       label: "Activity",       icon: "📋" },
 ];
 
 function TabBar({
@@ -190,10 +193,11 @@ export function DashboardTabs({
   }
 
   const counts: Partial<Record<TabId, number>> = {
-    leads:    leadsState.length,
-    contacts: contacts.length,
-    listings: listings.length,
-    tasks:    tasks.filter((t) => t.status !== "done").length,
+    leads:          leadsState.length,
+    contacts:       contacts.length,
+    listings:       listings.length,
+    "lease-listings": LEASE_LISTINGS.length,
+    tasks:          tasks.filter((t) => t.status !== "done").length,
     // activity count is fetched client-side; omit from badge here
   };
 
@@ -326,7 +330,7 @@ export function DashboardTabs({
 
             {/* Quick-jump shortcuts */}
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              {(["leads","contacts","listings","tasks","activity"] as TabId[]).map((id) => {
+              {(["leads","contacts","listings","lease-listings","tasks","activity"] as TabId[]).map((id) => {
                 const tab = TABS.find((t) => t.id === id)!;
                 return (
                   <button
@@ -365,6 +369,11 @@ export function DashboardTabs({
         {/* ── Listings ─────────────────────────────── */}
         {active === "listings" && (
           <ListingsGrid listings={listings} />
+        )}
+
+        {/* ── Lease Listings ───────────────────────── */}
+        {active === "lease-listings" && (
+          <LeaseListingsPanel />
         )}
 
         {/* ── Tasks ────────────────────────────────── */}
