@@ -30,15 +30,10 @@ export function LeadDetailDrawer({
   onClose: () => void;
   onLeadUpdated: (lead: Lead) => void;
 }) {
-  const [mounted, setMounted] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
   const [linking, setLinking] = useState(false);
   const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const linkedContact = useMemo(
     () => (lead.contact_id ? contacts.find((c) => c.id === lead.contact_id) : undefined),
@@ -91,7 +86,7 @@ export function LeadDetailDrawer({
     }
   }
 
-  if (!mounted) return null;
+  if (typeof document === "undefined") return null;
 
   return createPortal(
     <>
@@ -101,7 +96,7 @@ export function LeadDetailDrawer({
           position: "fixed",
           inset: 0,
           background: "rgba(0,0,0,0.55)",
-          zIndex: 200,
+          zIndex: 1000,
           backdropFilter: "blur(2px)",
         }}
       />
@@ -117,7 +112,7 @@ export function LeadDetailDrawer({
           right: 0,
           bottom: 0,
           width: "min(480px, 100vw)",
-          zIndex: 201,
+          zIndex: 1001,
           background: "var(--color-surface, #1a1f2e)",
           color: "var(--color-text, #e8edf5)",
           borderLeft: "1px solid var(--color-border, rgba(255,255,255,0.1))",

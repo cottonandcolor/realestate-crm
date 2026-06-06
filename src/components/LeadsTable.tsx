@@ -111,6 +111,7 @@ export function LeadsTable({
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [highlightedLeadId, setHighlightedLeadId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const term = search.toLowerCase();
@@ -227,6 +228,17 @@ export function LeadsTable({
     return (err as { error?: string }).error ?? "Could not add lead. Please try again.";
   }
 
+  function focusLeadInTable(lead: Lead) {
+    setHighlightedLeadId(lead.id);
+    requestAnimationFrame(() => {
+      document.getElementById(`lead-row-${lead.id}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    });
+    window.setTimeout(() => setHighlightedLeadId(null), 2500);
+  }
+
   async function deleteLead(lead: Lead) {
     if (!confirm(`Delete lead "${lead.name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/leads/${lead.id}`, { method: "DELETE" });
@@ -294,9 +306,13 @@ export function LeadsTable({
             onCancel={() => setShowAddForm(false)}
           />
         )}
-        <ContactDueBanner leads={dueLeads} onOpenLead={setActiveLead} />
+        <ContactDueBanner
+          leads={dueLeads}
+          onFocusLead={focusLeadInTable}
+          onOpenNotes={setActiveLead}
+        />
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-          Click <strong>+ Add lead</strong> to create a new entry — the person does <strong>not</strong> need to be in Contacts first. Use <strong>Edit</strong> or the <strong>Stage</strong> / <strong>Contact by</strong> fields to update a row. Click a name or <strong>Notes</strong> for activity history.
+          Click <strong>+ Add lead</strong> to create a new entry. Names in the <strong>contact today</strong> banner expand with phone/email — use <strong>Notes & activity</strong> there for call logs. Use <strong>Edit</strong> or the <strong>Stage</strong> / <strong>Contact by</strong> fields to update a row.
         </p>
         <table className="glass">
           <thead>
@@ -332,6 +348,7 @@ export function LeadsTable({
                   onStageChange={(stage) => updateStage(l.id, stage)}
                   onContactByChange={(contactBy) => updateContactBy(l.id, contactBy)}
                   onDelete={() => deleteLead(l)}
+                  highlighted={highlightedLeadId === l.id}
                   onOpen={() => setActiveLead(l)}
                   onNotify={() => notifyAssign(l)}
                 />
@@ -466,14 +483,22 @@ function AddLeadForm({
 
 function ContactDueBanner({
   leads,
-  onOpenLead,
+  onFocusLead,
+  onOpenNotes,
 }: {
   leads: Lead[];
-  onOpenLead: (lead: Lead) => void;
+  onFocusLead: (lead: Lead) => void;
+  onOpenNotes: (lead: Lead) => void;
 }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const hasDue = leads.length > 0;
   const overdue = leads.filter((l) => isContactOverdue(l.contact_by));
   const today = leads.filter((l) => isContactDueToday(l.contact_by));
+
+  function handleNameClick(lead: Lead) {
+    setExpandedId((id) => (id === lead.id ? null : lead.id));
+    onFocusLead(lead);
+  }
 
   return (
     <div
@@ -506,7 +531,13 @@ function ContactDueBanner({
             </p>
           )}
           {overdue.map((l) => (
-            <ContactDueRow key={l.id} lead={l} onOpen={() => onOpenLead(l)} />
+            <ContactDueRow
+              key={l.id}
+              lead={l}
+              expanded={expandedId === l.id}
+              onNameClick={() => handleNameClick(l)}
+              onOpenNotes={() => onOpenNotes(l)}
+            />
           ))}
           {today.length > 0 && overdue.length > 0 && (
             <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", opacity: 0.7, fontWeight: 600 }}>
@@ -514,7 +545,13 @@ function ContactDueBanner({
             </p>
           )}
           {today.map((l) => (
-            <ContactDueRow key={l.id} lead={l} onOpen={() => onOpenLead(l)} />
+            <ContactDueRow
+              key={l.id}
+              lead={l}
+              expanded={expandedId === l.id}
+              onNameClick={() => handleNameClick(l)}
+              onOpenNotes={() => onOpenNotes(l)}
+            />
           ))}
         </div>
       )}
@@ -522,32 +559,81 @@ function ContactDueBanner({
   );
 }
 
-function ContactDueRow({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
+function ContactDueRow({
+  lead,
+  expanded,
+  onNameClick,
+  onOpenNotes,
+}: {
+  lead: Lead;
+  expanded: boolean;
+  onNameClick: () => void;
+  onOpenNotes: () => void;
+}) {
   const overdue = isContactOverdue(lead.contact_by);
   return (
-    <p style={{ margin: 0, fontSize: "0.83rem" }}>
-      <button
-        type="button"
-        className="btn"
-        onClick={onOpen}
-        style={{
-          fontSize: "inherit",
-          padding: 0,
-          background: "none",
-          border: "none",
-          color: "inherit",
-          textDecoration: "underline",
-          cursor: "pointer",
-        }}
-      >
-        <strong>{lead.name}</strong>
-      </button>
-      {" — "}
-      {overdue ? "was due " : "contact by "}
-      {formatContactBy(lead.contact_by)}
-      {lead.phone && <span style={{ opacity: 0.75 }}> · {lead.phone}</span>}
-      {lead.email && <span style={{ opacity: 0.75 }}> · {lead.email}</span>}
-    </p>
+    <div style={{ fontSize: "0.83rem" }}>
+      <p style={{ margin: 0 }}>
+        <button
+          type="button"
+          onClick={onNameClick}
+          style={{
+            fontSize: "inherit",
+            padding: 0,
+            background: "none",
+            border: "none",
+            color: "inherit",
+            textDecoration: "underline",
+            cursor: "pointer",
+            fontWeight: 700,
+          }}
+        >
+          {lead.name}
+        </button>
+        {" — "}
+        {overdue ? "was due " : "contact by "}
+        {formatContactBy(lead.contact_by)}
+      </p>
+      {expanded && (
+        <div
+          style={{
+            marginTop: "0.45rem",
+            padding: "0.55rem 0.65rem",
+            borderRadius: "var(--radius-sm)",
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid var(--color-border)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.35rem",
+          }}
+        >
+          {lead.phone && (
+            <p style={{ margin: 0 }}>
+              📞{" "}
+              <a href={`tel:${lead.phone.replace(/\s/g, "")}`} style={{ color: "var(--color-primary)" }}>
+                {lead.phone}
+              </a>
+            </p>
+          )}
+          {lead.email && (
+            <p style={{ margin: 0 }}>
+              ✉{" "}
+              <a href={`mailto:${lead.email}`} style={{ color: "var(--color-primary)" }}>
+                {lead.email}
+              </a>
+            </p>
+          )}
+          {!lead.phone && !lead.email && (
+            <p style={{ margin: 0, opacity: 0.7 }}>No phone or email on file — use Edit to add contact info.</p>
+          )}
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.15rem" }}>
+            <button type="button" className="btn btn-primary" style={{ fontSize: "0.78rem" }} onClick={onOpenNotes}>
+              Notes & activity
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -563,10 +649,12 @@ function LeadRow({
   onDelete,
   onOpen,
   onNotify,
+  highlighted = false,
 }: {
   lead: Lead;
   linkedName: string | null;
   isEditing: boolean;
+  highlighted?: boolean;
   onEdit: () => void;
   onCancel: () => void;
   onSave: (patch: {
@@ -660,7 +748,14 @@ function LeadRow({
   }
 
   return (
-    <tr>
+    <tr
+      id={`lead-row-${lead.id}`}
+      style={
+        highlighted
+          ? { background: "rgba(251,191,36,0.18)", transition: "background 0.3s ease" }
+          : undefined
+      }
+    >
       <td>
         <button
           type="button"
