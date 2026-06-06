@@ -169,7 +169,7 @@ function LeaseRow({
           className="input"
           value={type}
           onChange={(e) => onTypeChange(listing.id, e.target.value as LeaseListingType)}
-          style={{ margin: 0, fontSize: "0.82rem", padding: "0.3rem 0.45rem", minWidth: "7.5rem" }}
+          style={{ margin: 0, fontSize: "0.82rem", padding: "0.3rem 0.45rem", minWidth: "8.5rem" }}
         >
           {LEASE_TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>

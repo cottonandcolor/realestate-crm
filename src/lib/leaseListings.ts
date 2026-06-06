@@ -1,13 +1,15 @@
-export type LeaseListingType = "landlord" | "tenant-rep";
+export type LeaseListingType = "landlord" | "tenant-rep" | "tenant";
 
 export const LEASE_TYPE_OPTIONS: { value: LeaseListingType; label: string }[] = [
   { value: "landlord", label: "Landlord" },
   { value: "tenant-rep", label: "Tenant Rep" },
+  { value: "tenant", label: "Tenant" },
 ];
 
 export const LEASE_TYPE_LABELS: Record<LeaseListingType, string> = {
   landlord: "Landlord",
   "tenant-rep": "Tenant Rep",
+  tenant: "Tenant",
 };
 
 const TYPE_STORAGE_KEY = "crm_lease_listing_types";
