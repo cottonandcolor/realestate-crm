@@ -82,6 +82,7 @@ export interface Lead {
   tags: string[];
   contact_id: string | null;
   assigned_agent_id: string | null;
+  contact_by: string | null;
   created_at: string;
   updated_at: string;
 }

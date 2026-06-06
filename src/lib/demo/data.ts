@@ -1,4 +1,5 @@
 import type { Activity, Contact, Lead, Listing, Project, Task } from "@/lib/types/database";
+import { localDateISO } from "@/lib/dates";
 import { DEMO_USER } from "./constants";
 
 const orgId = "00000000-0000-4000-8000-000000000010";
@@ -7,6 +8,12 @@ function ts(offsetDays = 0) {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
   return d.toISOString();
+}
+
+function contactBy(offsetDays = 0): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return localDateISO(d);
 }
 
 export const SEED_CONTACT_IDS = {
@@ -93,6 +100,7 @@ export function createSeedLeads(): Lead[] {
       tags: ["Buyer"],
       contact_id: SEED_CONTACT_IDS.alice,
       assigned_agent_id: DEMO_USER.id,
+      contact_by: contactBy(0),
       created_at: ts(-2),
       updated_at: ts(-2),
     },
@@ -107,6 +115,7 @@ export function createSeedLeads(): Lead[] {
       tags: ["Seller"],
       contact_id: SEED_CONTACT_IDS.bob,
       assigned_agent_id: DEMO_USER.id,
+      contact_by: contactBy(-2),
       created_at: ts(-5),
       updated_at: ts(-1),
     },
@@ -121,6 +130,7 @@ export function createSeedLeads(): Lead[] {
       tags: ["Investor"],
       contact_id: SEED_CONTACT_IDS.carol,
       assigned_agent_id: null,
+      contact_by: contactBy(7),
       created_at: ts(-10),
       updated_at: ts(-3),
     },

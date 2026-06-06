@@ -11,7 +11,9 @@ const lead: Lead = {
   stage: "new",
   source: "website",
   tags: ["Buyer", "First-Time"],
+  contact_id: null,
   assigned_agent_id: "agent-1",
+  contact_by: "2026-06-10",
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-02T00:00:00Z",
 };
@@ -51,7 +53,7 @@ describe("leadsToCSV", () => {
   it("produces a header row", () => {
     const csv = leadsToCSV([lead]);
     const firstLine = csv.split("\r\n")[0];
-    expect(firstLine).toBe("Name,Email,Phone,Stage,Source,Tags,Assigned Agent ID,Created At,Updated At");
+    expect(firstLine).toBe("Name,Email,Phone,Stage,Source,Tags,Contact By,Assigned Agent ID,Created At,Updated At");
   });
 
   it("includes lead data in data row", () => {
@@ -61,6 +63,7 @@ describe("leadsToCSV", () => {
     expect(csv).toContain("555-1234");
     expect(csv).toContain("new");
     expect(csv).toContain("website");
+    expect(csv).toContain("2026-06-10");
   });
 
   it("joins multiple tags with semicolon", () => {

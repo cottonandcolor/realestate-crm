@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Contact, Lead, LeadStage } from "@/lib/types/database";
-import { formatDateAdded } from "@/lib/dates";
+import {
+  formatContactBy,
+  formatDateAdded,
+  isContactDue,
+  isContactDueToday,
+  isContactOverdue,
+} from "@/lib/dates";
 import { LeadDetailDrawer } from "./LeadDetailDrawer";
 
 const STAGE_OPTIONS: { value: LeadStage; label: string }[] = [
@@ -20,6 +26,35 @@ function parseTagsInput(value: string): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function ContactByInput({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (contactBy: string | null) => void;
+}) {
+  const overdue = isContactOverdue(value);
+  const dueToday = isContactDueToday(value);
+
+  return (
+    <input
+      type="date"
+      className="input"
+      value={value ?? ""}
+      onChange={(e) => onChange(e.target.value || null)}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        margin: 0,
+        fontSize: "0.82rem",
+        width: "auto",
+        minWidth: "8.5rem",
+        color: overdue ? "#fc8181" : dueToday ? "#fbbf24" : undefined,
+        borderColor: overdue ? "#fc8181" : dueToday ? "#fbbf24" : undefined,
+      }}
+    />
+  );
 }
 
 function StageSelect({
@@ -147,6 +182,18 @@ export function LeadsTable({
     await patchLead(id, { stage });
   }
 
+  async function updateContactBy(id: string, contactBy: string | null) {
+    await patchLead(id, { contact_by: contactBy });
+  }
+
+  const dueLeads = useMemo(
+    () =>
+      leads
+        .filter((l) => isContactDue(l.contact_by))
+        .sort((a, b) => (a.contact_by ?? "").localeCompare(b.contact_by ?? "")),
+    [leads]
+  );
+
   async function deleteLead(lead: Lead) {
     if (!confirm(`Delete lead "${lead.name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/leads/${lead.id}`, { method: "DELETE" });
@@ -186,14 +233,16 @@ export function LeadsTable({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+        <ContactDueBanner leads={dueLeads} onOpenLead={setActiveLead} />
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-          Use the <strong>Stage</strong> dropdown to update pipeline status. Click <strong>Edit</strong> for other fields, or <strong>Delete</strong> to remove a lead.
+          Set a <strong>Contact by</strong> date for follow-ups — due leads appear in the banner above. Use the <strong>Stage</strong> dropdown to update pipeline status.
         </p>
         <table className="glass">
           <thead>
             <tr>
               <th onClick={() => handleSort("name")}>Name</th>
               <th onClick={() => handleSort("created_at")}>Date added</th>
+              <th onClick={() => handleSort("contact_by")}>Contact by</th>
               <th onClick={() => handleSort("email")}>Email</th>
               <th onClick={() => handleSort("phone")}>Phone</th>
               <th onClick={() => handleSort("stage")}>Stage</th>
@@ -220,6 +269,7 @@ export function LeadsTable({
                   onCancel={() => setEditingId(null)}
                   onSave={(patch) => saveLead(l.id, patch)}
                   onStageChange={(stage) => updateStage(l.id, stage)}
+                  onContactByChange={(contactBy) => updateContactBy(l.id, contactBy)}
                   onDelete={() => deleteLead(l)}
                   onOpen={() => setActiveLead(l)}
                   onNotify={() => notifyAssign(l)}
@@ -228,13 +278,100 @@ export function LeadsTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8}>No leads yet.</td>
+                <td colSpan={9}>No leads yet.</td>
               </tr>
             )}
           </tbody>
         </table>
       </section>
     </>
+  );
+}
+
+function ContactDueBanner({
+  leads,
+  onOpenLead,
+}: {
+  leads: Lead[];
+  onOpenLead: (lead: Lead) => void;
+}) {
+  const hasDue = leads.length > 0;
+  const overdue = leads.filter((l) => isContactOverdue(l.contact_by));
+  const today = leads.filter((l) => isContactDueToday(l.contact_by));
+
+  return (
+    <div
+      className="glass"
+      style={{
+        marginBottom: "1.25rem",
+        padding: "0.85rem 1rem",
+        background: hasDue ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.04)",
+        border: `1px solid ${hasDue ? "#fbbf24" : "var(--color-border)"}`,
+        borderRadius: "0.75rem",
+      }}
+    >
+      <p
+        style={{
+          margin: "0 0 0.6rem",
+          fontWeight: 700,
+          color: hasDue ? "#fbbf24" : "var(--color-text-muted)",
+          fontSize: "0.9rem",
+        }}
+      >
+        {hasDue
+          ? `${leads.length} lead${leads.length > 1 ? "s" : ""} to contact today`
+          : "No leads due for contact today"}
+      </p>
+      {hasDue && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+          {overdue.length > 0 && (
+            <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.7, fontWeight: 600, color: "#fc8181" }}>
+              Overdue
+            </p>
+          )}
+          {overdue.map((l) => (
+            <ContactDueRow key={l.id} lead={l} onOpen={() => onOpenLead(l)} />
+          ))}
+          {today.length > 0 && overdue.length > 0 && (
+            <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", opacity: 0.7, fontWeight: 600 }}>
+              Due today
+            </p>
+          )}
+          {today.map((l) => (
+            <ContactDueRow key={l.id} lead={l} onOpen={() => onOpenLead(l)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ContactDueRow({ lead, onOpen }: { lead: Lead; onOpen: () => void }) {
+  const overdue = isContactOverdue(lead.contact_by);
+  return (
+    <p style={{ margin: 0, fontSize: "0.83rem" }}>
+      <button
+        type="button"
+        className="btn"
+        onClick={onOpen}
+        style={{
+          fontSize: "inherit",
+          padding: 0,
+          background: "none",
+          border: "none",
+          color: "inherit",
+          textDecoration: "underline",
+          cursor: "pointer",
+        }}
+      >
+        <strong>{lead.name}</strong>
+      </button>
+      {" — "}
+      {overdue ? "was due " : "contact by "}
+      {formatContactBy(lead.contact_by)}
+      {lead.phone && <span style={{ opacity: 0.75 }}> · {lead.phone}</span>}
+      {lead.email && <span style={{ opacity: 0.75 }}> · {lead.email}</span>}
+    </p>
   );
 }
 
@@ -246,6 +383,7 @@ function LeadRow({
   onCancel,
   onSave,
   onStageChange,
+  onContactByChange,
   onDelete,
   onOpen,
   onNotify,
@@ -263,6 +401,7 @@ function LeadRow({
     stage: LeadStage;
   }) => void;
   onStageChange: (stage: LeadStage) => void;
+  onContactByChange: (contactBy: string | null) => void;
   onDelete: () => void;
   onOpen: () => void;
   onNotify: () => void;
@@ -302,6 +441,9 @@ function LeadRow({
           <input className="input" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
         </td>
         <td style={{ whiteSpace: "nowrap", opacity: 0.7 }}>{formatDateAdded(lead.created_at)}</td>
+        <td>
+          <ContactByInput value={lead.contact_by} onChange={onContactByChange} />
+        </td>
         <td>
           <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
         </td>
@@ -346,6 +488,9 @@ function LeadRow({
       <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.name}</td>
       <td style={{ whiteSpace: "nowrap", cursor: "pointer" }} onClick={onOpen}>
         {formatDateAdded(lead.created_at)}
+      </td>
+      <td>
+        <ContactByInput value={lead.contact_by} onChange={onContactByChange} />
       </td>
       <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.email ?? "—"}</td>
       <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.phone ?? "—"}</td>

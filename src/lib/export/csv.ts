@@ -31,12 +31,12 @@ function toCsvString(headers: string[], rows: string[][]): string {
 export function leadsToCSV(leads: Lead[]): string {
   const headers = [
     "Name", "Email", "Phone", "Stage", "Source", "Tags",
-    "Assigned Agent ID", "Created At", "Updated At",
+    "Contact By", "Assigned Agent ID", "Created At", "Updated At",
   ];
   const rows = leads.map((l) => [
     l.name, l.email ?? "", l.phone ?? "", l.stage,
     l.source ?? "", l.tags.join("; "),
-    l.assigned_agent_id ?? "", l.created_at, l.updated_at,
+    l.contact_by ?? "", l.assigned_agent_id ?? "", l.created_at, l.updated_at,
   ]);
   return toCsvString(headers, rows);
 }

@@ -231,7 +231,7 @@ export function linkDemoLeadToContact(leadId: string, contactId: string): boolea
 
 export function updateDemoLead(
   leadId: string,
-  data: Partial<Pick<Lead, "name" | "email" | "phone" | "stage" | "source" | "tags" | "contact_id">>
+  data: Partial<Pick<Lead, "name" | "email" | "phone" | "stage" | "source" | "tags" | "contact_id" | "contact_by">>
 ): Lead | null {
   const lead = leads.find((l) => l.id === leadId);
   if (!lead) return null;
