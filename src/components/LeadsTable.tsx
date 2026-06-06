@@ -22,15 +22,49 @@ function parseTagsInput(value: string): string[] {
     .filter(Boolean);
 }
 
+function StageSelect({
+  value,
+  onChange,
+  compact = false,
+}: {
+  value: LeadStage;
+  onChange: (stage: LeadStage) => void;
+  compact?: boolean;
+}) {
+  return (
+    <select
+      className="input"
+      value={value}
+      onChange={(e) => onChange(e.target.value as LeadStage)}
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        margin: 0,
+        fontSize: "0.82rem",
+        padding: compact ? "0.3rem 0.45rem" : undefined,
+        minWidth: compact ? "7.5rem" : undefined,
+        width: compact ? "auto" : "100%",
+      }}
+    >
+      {STAGE_OPTIONS.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export function LeadsTable({
   leads,
   contacts,
   onLeadUpdated,
+  onLeadDeleted,
   demoMode = false,
 }: {
   leads: Lead[];
   contacts: Contact[];
   onLeadUpdated: (lead: Lead) => void;
+  onLeadDeleted: (id: string) => void;
   demoMode?: boolean;
 }) {
   const [search, setSearch] = useState("");
@@ -81,6 +115,20 @@ export function LeadsTable({
     window.location.href = `/api/export?type=leads&format=csv`;
   }
 
+  async function patchLead(id: string, patch: Record<string, unknown>) {
+    const res = await fetch(`/api/leads/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      onLeadUpdated(updated);
+      return updated;
+    }
+    return null;
+  }
+
   async function saveLead(
     id: string,
     patch: {
@@ -91,15 +139,21 @@ export function LeadsTable({
       stage: LeadStage;
     }
   ) {
-    const res = await fetch(`/api/leads/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
+    const updated = await patchLead(id, patch);
+    if (updated) setEditingId(null);
+  }
+
+  async function updateStage(id: string, stage: LeadStage) {
+    await patchLead(id, { stage });
+  }
+
+  async function deleteLead(lead: Lead) {
+    if (!confirm(`Delete lead "${lead.name}"? This cannot be undone.`)) return;
+    const res = await fetch(`/api/leads/${lead.id}`, { method: "DELETE" });
     if (res.ok) {
-      const updated = await res.json();
-      onLeadUpdated(updated);
-      setEditingId(null);
+      onLeadDeleted(lead.id);
+      if (activeLead?.id === lead.id) setActiveLead(null);
+      if (editingId === lead.id) setEditingId(null);
     }
   }
 
@@ -133,7 +187,7 @@ export function LeadsTable({
           onChange={(e) => setSearch(e.target.value)}
         />
         <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-          Click <strong>Edit</strong> to change name, email, phone, tags, or stage. Click a row for notes and contact linking.
+          Use the <strong>Stage</strong> dropdown to update pipeline status. Click <strong>Edit</strong> for other fields, or <strong>Delete</strong> to remove a lead.
         </p>
         <table className="glass">
           <thead>
@@ -165,6 +219,8 @@ export function LeadsTable({
                   onEdit={() => setEditingId(l.id)}
                   onCancel={() => setEditingId(null)}
                   onSave={(patch) => saveLead(l.id, patch)}
+                  onStageChange={(stage) => updateStage(l.id, stage)}
+                  onDelete={() => deleteLead(l)}
                   onOpen={() => setActiveLead(l)}
                   onNotify={() => notifyAssign(l)}
                 />
@@ -189,6 +245,8 @@ function LeadRow({
   onEdit,
   onCancel,
   onSave,
+  onStageChange,
+  onDelete,
   onOpen,
   onNotify,
 }: {
@@ -204,6 +262,8 @@ function LeadRow({
     tags: string[];
     stage: LeadStage;
   }) => void;
+  onStageChange: (stage: LeadStage) => void;
+  onDelete: () => void;
   onOpen: () => void;
   onNotify: () => void;
 }) {
@@ -249,13 +309,7 @@ function LeadRow({
           <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} />
         </td>
         <td>
-          <select className="input" value={stage} onChange={(e) => setStage(e.target.value as LeadStage)} style={inputStyle}>
-            {STAGE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <StageSelect value={stage} onChange={setStage} />
         </td>
         <td>
           <input
@@ -295,8 +349,8 @@ function LeadRow({
       </td>
       <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.email ?? "—"}</td>
       <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.phone ?? "—"}</td>
-      <td style={{ cursor: "pointer" }} onClick={onOpen}>
-        <span style={{ textTransform: "capitalize" }}>{lead.stage}</span>
+      <td>
+        <StageSelect value={lead.stage} onChange={onStageChange} compact />
       </td>
       <td style={{ cursor: "pointer" }} onClick={onOpen}>{lead.tags.join(", ") || "—"}</td>
       <td style={{ cursor: "pointer" }} onClick={onOpen}>
@@ -336,6 +390,14 @@ function LeadRow({
             style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem" }}
           >
             ✉️
+          </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={onDelete}
+            style={{ fontSize: "0.75rem", padding: "0.2rem 0.55rem", color: "#e53e3e" }}
+          >
+            Delete
           </button>
         </div>
       </td>

@@ -238,3 +238,13 @@ export function updateDemoLead(
   Object.assign(lead, data, { updated_at: new Date().toISOString() });
   return lead;
 }
+
+export function deleteDemoLead(leadId: string): boolean {
+  const before = leads.length;
+  leads = leads.filter((l) => l.id !== leadId);
+  if (leads.length === before) return false;
+  for (const a of activities) {
+    if (a.lead_id === leadId) a.lead_id = null;
+  }
+  return true;
+}

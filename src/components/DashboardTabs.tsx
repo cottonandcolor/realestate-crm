@@ -157,6 +157,16 @@ export function DashboardTabs({
       })
     );
   }
+
+  function handleLeadDeleted(id: string) {
+    setLeadsState((prev) => prev.filter((l) => l.id !== id));
+    setContacts((prev) =>
+      prev.map((c) => ({
+        ...c,
+        leads: (c.leads ?? []).filter((l) => l.id !== id),
+      }))
+    );
+  }
   // Re-render when reminder acknowledgments change (stored in localStorage)
   const [, setAckVersion] = useState(0);
 
@@ -357,6 +367,7 @@ export function DashboardTabs({
             leads={leadsState}
             contacts={contacts}
             onLeadUpdated={handleLeadUpdated}
+            onLeadDeleted={handleLeadDeleted}
             demoMode={demoMode}
           />
         )}
