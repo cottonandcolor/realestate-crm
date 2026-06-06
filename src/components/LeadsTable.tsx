@@ -204,7 +204,7 @@ export function LeadsTable({
     stage: LeadStage;
     tags: string[];
     contact_by: string | null;
-  }) {
+  }): Promise<string | null> {
     const res = await fetch("/api/leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -214,7 +214,10 @@ export function LeadsTable({
       const created = await res.json();
       onLeadAdded(created);
       setShowAddForm(false);
+      return null;
     }
+    const err = await res.json().catch(() => ({}));
+    return (err as { error?: string }).error ?? "Could not add lead. Please try again.";
   }
 
   async function deleteLead(lead: Lead) {
@@ -350,7 +353,7 @@ function AddLeadForm({
     stage: LeadStage;
     tags: string[];
     contact_by: string | null;
-  }) => void;
+  }) => Promise<string | null>;
   onCancel: () => void;
 }) {
   const [name, setName] = useState("");
@@ -359,11 +362,15 @@ function AddLeadForm({
   const [stage, setStage] = useState<LeadStage>("new");
   const [tagsDraft, setTagsDraft] = useState("");
   const [contactBy, setContactBy] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  function handleAdd() {
+  async function handleAdd() {
     const nameTrim = name.trim();
-    if (!nameTrim) return;
-    onAdd({
+    if (!nameTrim || saving) return;
+    setError(null);
+    setSaving(true);
+    const err = await onAdd({
       name: nameTrim,
       email: email.trim() || null,
       phone: phone.trim() || null,
@@ -371,6 +378,11 @@ function AddLeadForm({
       tags: parseTagsInput(tagsDraft),
       contact_by: contactBy || null,
     });
+    setSaving(false);
+    if (err) {
+      setError(err);
+      return;
+    }
     setName("");
     setEmail("");
     setPhone("");
@@ -382,6 +394,18 @@ function AddLeadForm({
   return (
     <div className="glass" style={{ padding: "1rem", marginBottom: "1rem" }}>
       <h3 style={{ margin: "0 0 0.75rem", fontSize: "0.95rem" }}>New lead</h3>
+      {error && (
+        <p style={{ margin: "0 0 0.75rem", fontSize: "0.82rem", color: "#fc8181" }}>
+          {error}
+        </p>
+      )}
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleAdd();
+        }}
+      >
       <div
         style={{
           display: "grid",
@@ -392,15 +416,15 @@ function AddLeadForm({
       >
         <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
           Name *
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" style={inputStyle} />
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" style={inputStyle} required />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
-          Email
-          <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" style={inputStyle} />
+          Email <span style={{ opacity: 0.55 }}>(optional)</span>
+          <input className="input" type="text" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" style={inputStyle} />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
-          Phone
-          <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" style={inputStyle} />
+          Phone <span style={{ opacity: 0.55 }}>(optional)</span>
+          <input className="input" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="555-1234" style={inputStyle} />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.78rem" }}>
           Stage
@@ -416,19 +440,19 @@ function AddLeadForm({
         </label>
         <div style={{ display: "flex", gap: "0.4rem" }}>
           <button
-            type="button"
+            type="submit"
             className="btn btn-primary"
             style={{ fontSize: "0.82rem" }}
-            disabled={!name.trim()}
-            onClick={handleAdd}
+            disabled={!name.trim() || saving}
           >
-            Add lead
+            {saving ? "Adding…" : "Add lead"}
           </button>
-          <button type="button" className="btn" style={{ fontSize: "0.82rem" }} onClick={onCancel}>
+          <button type="button" className="btn" style={{ fontSize: "0.82rem" }} onClick={onCancel} disabled={saving}>
             Cancel
           </button>
         </div>
       </div>
+      </form>
     </div>
   );
 }

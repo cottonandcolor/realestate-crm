@@ -5,6 +5,12 @@ import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { addDemoLead } from "@/lib/demo/store";
 import type { LeadStage } from "@/lib/types/database";
 
+function optionalString(value: unknown): string | null {
+  if (value == null) return null;
+  const trimmed = String(value).trim();
+  return trimmed || null;
+}
+
 function parseTags(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.map((t) => String(t).trim()).filter(Boolean);
@@ -24,12 +30,12 @@ export async function POST(request: Request) {
 
   const payload = {
     name,
-    email: (body.email as string | null)?.trim() || null,
-    phone: (body.phone as string | null)?.trim() || null,
+    email: optionalString(body.email),
+    phone: optionalString(body.phone),
     stage: (body.stage as LeadStage) ?? "new",
-    source: (body.source as string | null)?.trim() || null,
+    source: optionalString(body.source),
     tags: parseTags(body.tags),
-    contact_by: (body.contact_by as string | null) || null,
+    contact_by: optionalString(body.contact_by),
   };
 
   const demoUser = await getDemoUserFromCookies();
@@ -45,19 +51,21 @@ export async function POST(request: Request) {
   const orgId = await getUserOrgId(supabase);
   if (!orgId) return NextResponse.json({ error: "No organization" }, { status: 400 });
 
+  const row: Record<string, unknown> = {
+    org_id: orgId,
+    name: payload.name,
+    email: payload.email,
+    phone: payload.phone,
+    stage: payload.stage,
+    source: payload.source,
+    tags: payload.tags,
+    assigned_agent_id: user.id,
+  };
+  if (payload.contact_by) row.contact_by = payload.contact_by;
+
   const { data, error } = await supabase
     .from("leads")
-    .insert({
-      org_id: orgId,
-      name: payload.name,
-      email: payload.email,
-      phone: payload.phone,
-      stage: payload.stage,
-      source: payload.source,
-      tags: payload.tags,
-      contact_by: payload.contact_by,
-      assigned_agent_id: user.id,
-    })
+    .insert(row)
     .select()
     .single();
 
