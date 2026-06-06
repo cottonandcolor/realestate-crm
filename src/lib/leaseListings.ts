@@ -134,6 +134,19 @@ export const LEASE_LISTINGS: LeaseListing[] = [
   },
 ];
 
+export const LEASE_ENDING_ALERT_DAYS = 75;
+
+export function daysUntilLeaseEnd(leaseEnd: string): number {
+  const end = new Date(leaseEnd + "T23:59:59");
+  const now = new Date();
+  return Math.ceil((end.getTime() - now.getTime()) / 86400000);
+}
+
+export function isLeaseEndingWithinDays(leaseEnd: string, days: number): boolean {
+  const left = daysUntilLeaseEnd(leaseEnd);
+  return left >= 0 && left <= days;
+}
+
 export function formatProperty(listing: Pick<LeaseListing, "address" | "city">): string {
   return `${listing.address}, ${listing.city}`;
 }

@@ -3,10 +3,13 @@
 import { useMemo, useState } from "react";
 import {
   LEASE_LISTINGS,
+  LEASE_ENDING_ALERT_DAYS,
   LEASE_TYPE_LABELS,
   LEASE_TYPE_OPTIONS,
+  daysUntilLeaseEnd,
   formatLeaseDate,
   formatProperty,
+  isLeaseEndingWithinDays,
   loadLeaseListingTypes,
   saveLeaseListingType,
   type LeaseListing,
@@ -20,7 +23,7 @@ function leaseStatus(end: string): "active" | "ending-soon" | "ended" {
   const endDate = new Date(end + "T23:59:59");
   const daysLeft = (endDate.getTime() - now.getTime()) / 86400000;
   if (daysLeft < 0) return "ended";
-  if (daysLeft <= 60) return "ending-soon";
+  if (daysLeft <= LEASE_ENDING_ALERT_DAYS) return "ending-soon";
   return "active";
 }
 
@@ -44,6 +47,14 @@ export function LeaseListingsPanel() {
     setTypeOverrides((prev) => ({ ...prev, [id]: type }));
     saveLeaseListingType(id, type);
   }
+
+  const endingSoon = useMemo(
+    () =>
+      LEASE_LISTINGS.filter((l) =>
+        isLeaseEndingWithinDays(l.leaseEnd, LEASE_ENDING_ALERT_DAYS)
+      ).sort((a, b) => daysUntilLeaseEnd(a.leaseEnd) - daysUntilLeaseEnd(b.leaseEnd)),
+    []
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -106,6 +117,8 @@ export function LeaseListingsPanel() {
         </span>
       </div>
 
+      <LeaseEndingAlert listings={endingSoon} />
+
       <input
         type="text"
         className="search"
@@ -143,6 +156,54 @@ export function LeaseListingsPanel() {
         </tbody>
       </table>
     </section>
+  );
+}
+
+function LeaseEndingAlert({ listings }: { listings: LeaseListing[] }) {
+  const hasAlerts = listings.length > 0;
+
+  return (
+    <div
+      className="glass"
+      style={{
+        marginBottom: "1.25rem",
+        padding: "0.85rem 1rem",
+        background: hasAlerts ? "rgba(251,191,36,0.12)" : "rgba(255,255,255,0.04)",
+        border: `1px solid ${hasAlerts ? "#fbbf24" : "var(--color-border)"}`,
+        borderRadius: "0.75rem",
+      }}
+    >
+      <p
+        style={{
+          margin: "0 0 0.6rem",
+          fontWeight: 700,
+          color: hasAlerts ? "#fbbf24" : "var(--color-text-muted)",
+          fontSize: "0.9rem",
+        }}
+      >
+        {hasAlerts
+          ? `${listings.length} lease${listings.length > 1 ? "s" : ""} ending within ${LEASE_ENDING_ALERT_DAYS} days`
+          : `No leases ending within ${LEASE_ENDING_ALERT_DAYS} days`}
+      </p>
+      {hasAlerts && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+          {listings.map((l) => {
+            const daysLeft = daysUntilLeaseEnd(l.leaseEnd);
+            return (
+              <p key={l.id} style={{ margin: 0, fontSize: "0.83rem" }}>
+                <strong>{formatProperty(l)}</strong>
+                {" — "}
+                ends {formatLeaseDate(l.leaseEnd)}
+                <span style={{ opacity: 0.75 }}>
+                  {" "}· {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
+                  {l.contacts.length > 0 && ` · ${l.contacts.join(", ")}`}
+                </span>
+              </p>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
