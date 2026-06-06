@@ -1,7 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LEASE_LISTINGS, LEASE_TYPE_LABELS, formatLeaseDate, formatProperty, type LeaseListing } from "@/lib/leaseListings";
+import {
+  LEASE_LISTINGS,
+  LEASE_TYPE_LABELS,
+  LEASE_TYPE_OPTIONS,
+  formatLeaseDate,
+  formatProperty,
+  loadLeaseListingTypes,
+  saveLeaseListingType,
+  type LeaseListing,
+  type LeaseListingType,
+} from "@/lib/leaseListings";
 
 type SortKey = "property" | "leaseStart" | "leaseEnd" | "contacts" | "type";
 
@@ -20,22 +30,34 @@ const STATUS_STYLE = {
   ended: { bg: "rgba(229,62,62,0.2)", color: "#fc8181", label: "Ended" },
 };
 
+function resolveType(listing: LeaseListing, overrides: Record<string, LeaseListingType>): LeaseListingType {
+  return overrides[listing.id] ?? listing.type;
+}
+
 export function LeaseListingsPanel() {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("leaseEnd");
   const [sortAsc, setSortAsc] = useState(true);
+  const [typeOverrides, setTypeOverrides] = useState<Record<string, LeaseListingType>>(loadLeaseListingTypes);
+
+  function updateType(id: string, type: LeaseListingType) {
+    setTypeOverrides((prev) => ({ ...prev, [id]: type }));
+    saveLeaseListingType(id, type);
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let rows = LEASE_LISTINGS;
     if (q) {
-      rows = rows.filter(
-        (l) =>
+      rows = rows.filter((l) => {
+        const type = resolveType(l, typeOverrides);
+        return (
           l.address.toLowerCase().includes(q) ||
           l.city.toLowerCase().includes(q) ||
           l.contacts.some((t) => t.toLowerCase().includes(q)) ||
-          LEASE_TYPE_LABELS[l.type].toLowerCase().includes(q)
-      );
+          LEASE_TYPE_LABELS[type].toLowerCase().includes(q)
+        );
+      });
     }
     return [...rows].sort((a, b) => {
       let av: string;
@@ -47,8 +69,8 @@ export function LeaseListingsPanel() {
         av = a.contacts.join(", ");
         bv = b.contacts.join(", ");
       } else if (sortKey === "type") {
-        av = LEASE_TYPE_LABELS[a.type];
-        bv = LEASE_TYPE_LABELS[b.type];
+        av = LEASE_TYPE_LABELS[resolveType(a, typeOverrides)];
+        bv = LEASE_TYPE_LABELS[resolveType(b, typeOverrides)];
       } else {
         av = a[sortKey];
         bv = b[sortKey];
@@ -56,7 +78,7 @@ export function LeaseListingsPanel() {
       const cmp = av.localeCompare(bv);
       return sortAsc ? cmp : -cmp;
     });
-  }, [search, sortKey, sortAsc]);
+  }, [search, sortKey, sortAsc, typeOverrides]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -106,7 +128,12 @@ export function LeaseListingsPanel() {
         </thead>
         <tbody>
           {filtered.map((l) => (
-            <LeaseRow key={l.id} listing={l} />
+            <LeaseRow
+              key={l.id}
+              listing={l}
+              type={resolveType(l, typeOverrides)}
+              onTypeChange={updateType}
+            />
           ))}
           {filtered.length === 0 && (
             <tr>
@@ -119,7 +146,15 @@ export function LeaseListingsPanel() {
   );
 }
 
-function LeaseRow({ listing }: { listing: LeaseListing }) {
+function LeaseRow({
+  listing,
+  type,
+  onTypeChange,
+}: {
+  listing: LeaseListing;
+  type: LeaseListingType;
+  onTypeChange: (id: string, type: LeaseListingType) => void;
+}) {
   const status = leaseStatus(listing.leaseEnd);
   const style = STATUS_STYLE[status];
 
@@ -129,7 +164,20 @@ function LeaseRow({ listing }: { listing: LeaseListing }) {
       <td style={{ whiteSpace: "nowrap" }}>{formatLeaseDate(listing.leaseStart)}</td>
       <td style={{ whiteSpace: "nowrap" }}>{formatLeaseDate(listing.leaseEnd)}</td>
       <td>{listing.contacts.join(", ")}</td>
-      <td>{LEASE_TYPE_LABELS[listing.type]}</td>
+      <td>
+        <select
+          className="input"
+          value={type}
+          onChange={(e) => onTypeChange(listing.id, e.target.value as LeaseListingType)}
+          style={{ margin: 0, fontSize: "0.82rem", padding: "0.3rem 0.45rem", minWidth: "7.5rem" }}
+        >
+          {LEASE_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </td>
       <td>
         <span
           style={{
