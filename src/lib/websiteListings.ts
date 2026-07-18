@@ -1,4 +1,5 @@
 import type { Listing } from "@/lib/types/database";
+import zipFormListings from "../../public/data/zipform-listings.json";
 
 const SOURCE = "yourspacewithhannah";
 const SOURCE_URL = "https://yourspacewithhannah.com/#listings";
@@ -123,6 +124,9 @@ export const WEBSITE_LISTINGS: Listing[] = [
   },
 ];
 
+export const ZIPFORM_TRANSACTION_LISTINGS =
+  zipFormListings.rows as unknown as Listing[];
+
 function normalizedAddress(listing: Listing): string {
   return (listing.address ?? listing.title).toLowerCase().replace(/\W/g, "");
 }
@@ -135,16 +139,18 @@ export function isLegacyFakeListing(listing: Listing): boolean {
   );
 }
 
-/** Website listings are canonical; retain only genuine, non-duplicate manual imports. */
+/** Static website/ZipForm listings are canonical; retain genuine manual imports. */
 export function mergeWebsiteListings(existing: Listing[]): Listing[] {
-  const websiteAddresses = new Set(WEBSITE_LISTINGS.map(normalizedAddress));
+  const staticListings = [...WEBSITE_LISTINGS, ...ZIPFORM_TRANSACTION_LISTINGS];
+  const staticAddresses = new Set(staticListings.map(normalizedAddress));
   const manual = existing.filter(
     (listing) =>
       !isLegacyFakeListing(listing) &&
       listing.property_type !== "lease" &&
       listing.property_type !== "rental" &&
       listing.external_source !== SOURCE &&
-      !websiteAddresses.has(normalizedAddress(listing)),
+      listing.external_source !== "zipform-transactions" &&
+      !staticAddresses.has(normalizedAddress(listing)),
   );
-  return [...WEBSITE_LISTINGS, ...manual];
+  return [...staticListings, ...manual];
 }

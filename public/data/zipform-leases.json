@@ -1,5 +1,5 @@
 {
-  "scraped_at": "2026-07-18T22:08:38.582Z",
+  "scraped_at": "2026-07-18T22:42:30.251Z",
   "source": "zipform",
   "row_count": 86,
   "rows": [
@@ -292,8 +292,8 @@
       "ref_number": "122029237",
       "address": "914 Washburn Dr",
       "city": "Leander",
-      "leaseStart": "",
-      "leaseEnd": "",
+      "leaseStart": "2024-11-01",
+      "leaseEnd": "2025-06-30",
       "contacts": [
         "Vinayak Shanbhogue",
         "Jyothi Prabhu",
@@ -302,7 +302,7 @@
       ],
       "type": "tenant-rep",
       "status": "Active",
-      "monthly_rent": "",
+      "monthly_rent": "$1,850.00",
       "transaction_name": "914 Washburn Dr",
       "transaction_type": "Lease, Residential"
     },

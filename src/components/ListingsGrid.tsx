@@ -62,6 +62,10 @@ function TypeBadge({ type }: { type: PropertyType }) {
 function ListingMetadata({ listing }: { listing: Listing }) {
   const metadata = listing.metadata ?? {};
   const area = typeof metadata.area === "string" ? metadata.area : null;
+  const transactionType =
+    typeof metadata.transaction_type === "string" ? metadata.transaction_type : null;
+  const zipFormStatus =
+    typeof metadata.zipform_status === "string" ? metadata.zipform_status : null;
   const listingUrl =
     typeof metadata.listing_url === "string" ? metadata.listing_url : null;
   const specs = [
@@ -78,6 +82,11 @@ function ListingMetadata({ listing }: { listing: Listing }) {
       {area && (
         <p style={{ fontSize: "0.78rem", opacity: 0.68, marginTop: "0.35rem" }}>
           {area}
+        </p>
+      )}
+      {transactionType && (
+        <p style={{ fontSize: "0.78rem", opacity: 0.72, marginTop: "0.35rem" }}>
+          {[zipFormStatus, transactionType].filter(Boolean).join(" · ")}
         </p>
       )}
       {specs.length > 0 && (

@@ -19,6 +19,8 @@ const PROFILE_DIR = path.join(OUTPUT_DIR, "browser-profile");
 const SESSION_FILE = path.join(OUTPUT_DIR, "session.json");
 const OUTPUT_JSON = path.join(OUTPUT_DIR, "leases.json");
 const OUTPUT_CSV = path.join(OUTPUT_DIR, "leases.csv");
+const TRANSACTIONS_JSON = path.join(OUTPUT_DIR, "listings.json");
+const TRANSACTIONS_CSV = path.join(OUTPUT_DIR, "listings.csv");
 
 const CSV_FIELDS = [
   "transaction_name",
@@ -40,8 +42,11 @@ const listingsOnly = process.argv.includes("--listings-only");
 const missingOnly = process.argv.includes("--missing-only");
 const activeOnly = process.argv.includes("--active-only");
 const listOnly = process.argv.includes("--list-only");
+const allTransactions = process.argv.includes("--all-transactions");
 const limitArg = process.argv.find((a) => a.startsWith("--limit="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : Infinity;
+const activeOutputJson = allTransactions ? TRANSACTIONS_JSON : OUTPUT_JSON;
+const activeOutputCsv = allTransactions ? TRANSACTIONS_CSV : OUTPUT_CSV;
 
 if (!fs.existsSync(PROFILE_DIR)) {
   console.error(`No ZipForm profile at ${PROFILE_DIR}`);
@@ -218,7 +223,11 @@ async function collectVisibleLeaseRows(page, statusGroup) {
     if (after <= before) break;
   }
 
-  return list.locator("tr.txn-item").evaluateAll((elements, { listingsOnlyFlag, fallbackStatus }) => {
+  return list.locator("tr.txn-item").evaluateAll((elements, {
+    listingsOnlyFlag,
+    fallbackStatus,
+    includeAllTransactions,
+  }) => {
     const rows = [];
     const seen = new Set();
     for (const tr of elements) {
@@ -227,7 +236,7 @@ async function collectVisibleLeaseRows(page, statusGroup) {
       const typeMatch = text.match(/Type:\s*([^\n\t]+)/i);
       const transaction_type = (typeMatch?.[1] || "").trim();
       const isLease = /lease/i.test(transaction_type) || /\blease\b/i.test(text);
-      if (!isLease) continue;
+      if (!includeAllTransactions && !isLease) continue;
       if (listingsOnlyFlag && !/listing/i.test(transaction_type) && !/Lease-Listing/i.test(transaction_type)) {
         // Listings tab usually Lease-Listing; still keep pure Lease if filter didn't apply
       }
@@ -272,7 +281,11 @@ async function collectVisibleLeaseRows(page, statusGroup) {
       });
     }
     return rows;
-  }, { listingsOnlyFlag: listingsOnly, fallbackStatus: statusGroup });
+  }, {
+    listingsOnlyFlag: listingsOnly,
+    fallbackStatus: statusGroup,
+    includeAllTransactions: allTransactions,
+  });
 }
 
 /** @param {import('playwright').Page} page */
@@ -288,7 +301,9 @@ async function collectLeaseListRows(page) {
       continue;
     }
     const rows = await collectVisibleLeaseRows(page, group);
-    console.log(`  ${group}: ${rows.length} lease transaction(s)`);
+    console.log(
+      `  ${group}: ${rows.length} ${allTransactions ? "transaction" : "lease transaction"}(s)`,
+    );
     for (const row of rows) combined.set(row.key, row);
   }
 
@@ -643,8 +658,8 @@ function writeProgress(priorByKey) {
     fields: CSV_FIELDS,
     rows: finalRows,
   };
-  fs.writeFileSync(OUTPUT_JSON, JSON.stringify(payload, null, 2));
-  fs.writeFileSync(OUTPUT_CSV, toCsv(finalRows));
+  fs.writeFileSync(activeOutputJson, JSON.stringify(payload, null, 2));
+  fs.writeFileSync(activeOutputCsv, toCsv(finalRows));
 }
 
 /** @param {import('playwright').Page} page @param {{ transaction_name?: string, transaction_id?: string, property_address?: string }} row */
@@ -767,9 +782,9 @@ try {
 
   /** @type {Map<string, Record<string, string>>} */
   const priorByKey = new Map();
-  if (fs.existsSync(OUTPUT_JSON)) {
+  if (fs.existsSync(activeOutputJson)) {
     try {
-      const prior = JSON.parse(fs.readFileSync(OUTPUT_JSON, "utf8"));
+      const prior = JSON.parse(fs.readFileSync(activeOutputJson, "utf8"));
       for (const r of prior.rows || []) {
         const k = (r.transaction_id || `${r.transaction_name}|${r.property_address}`).toLowerCase();
         priorByKey.set(k, r);
@@ -801,9 +816,11 @@ try {
     });
   }
   writeProgress(priorByKey);
-  console.log(`Saved ${priorByKey.size} discovered lease transaction(s) before date enrichment`);
+  console.log(
+    `Saved ${priorByKey.size} discovered ${allTransactions ? "transaction" : "lease transaction"}(s) before date enrichment`,
+  );
 
-  if (listOnly) {
+  if (listOnly || allTransactions) {
     await context.close().catch(() => {});
     process.exit(0);
   }
@@ -954,8 +971,8 @@ try {
   writeProgress(priorByKey);
   const finalRows = [...priorByKey.values()];
   const withDates = finalRows.filter((r) => r.lease_start_date || r.lease_end_date).length;
-  console.log(`\n✓ ${finalRows.length} leases → ${OUTPUT_JSON}`);
-  console.log(`✓ CSV → ${OUTPUT_CSV}`);
+  console.log(`\n✓ ${finalRows.length} leases → ${activeOutputJson}`);
+  console.log(`✓ CSV → ${activeOutputCsv}`);
   console.log(`  ${withDates}/${finalRows.length} had lease start/end`);
   console.log("Next: npm run zipform:sync-leases");
 } finally {

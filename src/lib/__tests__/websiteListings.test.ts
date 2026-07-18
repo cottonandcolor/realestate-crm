@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Listing } from "@/lib/types/database";
 import {
   WEBSITE_LISTINGS,
+  ZIPFORM_TRANSACTION_LISTINGS,
   mergeWebsiteListings,
 } from "@/lib/websiteListings";
 
@@ -37,14 +38,30 @@ describe("website listings", () => {
     ]);
   });
 
-  it("removes fake and lease records while retaining real manual listings", () => {
+  it("contains all Active and Closed ZipForm transactions", () => {
+    expect(ZIPFORM_TRANSACTION_LISTINGS).toHaveLength(134);
+    expect(
+      ZIPFORM_TRANSACTION_LISTINGS.filter(
+        (item) => item.metadata.zipform_status === "Active",
+      ),
+    ).toHaveLength(93);
+    expect(
+      ZIPFORM_TRANSACTION_LISTINGS.filter(
+        (item) => item.metadata.zipform_status === "Closed",
+      ),
+    ).toHaveLength(41);
+  });
+
+  it("removes fake and manual lease records while retaining real manual listings", () => {
     const merged = mergeWebsiteListings([
       listing({ external_source: "seed", external_id: "demo-condo-1" }),
       listing({ id: "lease", property_type: "lease", external_id: "real-lease" }),
       listing({ id: "manual", external_id: "real-manual" }),
     ]);
 
-    expect(merged).toHaveLength(WEBSITE_LISTINGS.length + 1);
+    expect(merged).toHaveLength(
+      WEBSITE_LISTINGS.length + ZIPFORM_TRANSACTION_LISTINGS.length + 1,
+    );
     expect(merged.some((item) => item.external_id === "demo-condo-1")).toBe(false);
     expect(merged.some((item) => item.external_id === "real-lease")).toBe(false);
     expect(merged.some((item) => item.external_id === "real-manual")).toBe(true);
