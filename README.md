@@ -58,6 +58,8 @@ Open [http://localhost:3000](http://localhost:3000), sign up, and use the dashbo
 4. Set `NEXT_PUBLIC_APP_URL` to your production URL.
 5. Update Supabase redirect URLs and Google OAuth redirect to match production.
 
+Once the GitHub repository is connected, pushes to `main` deploy automatically.
+
 ## Listing import
 
 - **CSV:** Use the import panel on the dashboard, or `POST /api/listings/import` with `{ "source": "csv", "data": "..." }`.
