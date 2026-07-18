@@ -60,6 +60,8 @@ Open [http://localhost:3000](http://localhost:3000), sign up, and use the dashbo
 
 Once the GitHub repository is connected, pushes to `main` deploy automatically.
 
+Production: [realestatecrm-ochre.vercel.app](https://realestatecrm-ochre.vercel.app)
+
 ## Listing import
 
 - **CSV:** Use the import panel on the dashboard, or `POST /api/listings/import` with `{ "source": "csv", "data": "..." }`.
