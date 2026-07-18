@@ -92,7 +92,7 @@ export function stripLegacySeedListings(listings: LeaseListing[]): LeaseListing[
     (l) =>
       !l.id.startsWith("agenthub-") &&
       !l.id.startsWith("zipform-") &&
-      !/^lease-00\d$/.test(l.id),
+      !/^lease-0(?:0[1-9]|10)$/.test(l.id),
   );
 }
 

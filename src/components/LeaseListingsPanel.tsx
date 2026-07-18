@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AGENTHUB_SYNC_KEY,
   ZIPFORM_SYNC_KEY,
   agentHubLeaseRowsToListings,
   mergeAgentHubLeaseListings,
@@ -60,7 +59,7 @@ export function LeaseListingsPanel({
   const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
 
-  async function syncFromZipForm(force = false, quiet = false) {
+  async function syncFromZipForm(quiet = false) {
     if (!quiet) {
       setSyncing(true);
       setSyncNote(null);
@@ -72,47 +71,12 @@ export function LeaseListingsPanel({
         scraped_at: string;
         rows: Parameters<typeof agentHubLeaseRowsToListings>[0];
       };
-      const syncedAt = localStorage.getItem(ZIPFORM_SYNC_KEY);
-      if (!force && syncedAt && syncedAt >= data.scraped_at) {
-        if (!quiet) setSyncNote("Already up to date with ZipForm");
-        return loadLeaseListings();
-      }
       const imported = agentHubLeaseRowsToListings(data.rows);
-      const stored = loadLeaseListings().filter((l) => !l.id.startsWith("zipform-"));
-      const next = mergeAgentHubLeaseListings(stored, imported);
+      const manual = stripLegacySeedListings(loadLeaseListings());
+      const next = mergeAgentHubLeaseListings(manual, imported);
       saveLeaseListings(next);
       localStorage.setItem(ZIPFORM_SYNC_KEY, data.scraped_at);
       if (!quiet) setSyncNote(`Imported ${imported.length} leases from ZipForm`);
-      return next;
-    } finally {
-      if (!quiet) setSyncing(false);
-    }
-  }
-
-  async function syncFromAgentHub(force = false, quiet = false) {
-    if (!quiet) {
-      setSyncing(true);
-      setSyncNote(null);
-    }
-    try {
-      const res = await fetch("/data/agenthub-leases.json");
-      if (!res.ok) throw new Error("Agent Hub lease data not found");
-      const data = (await res.json()) as {
-        scraped_at: string;
-        rows: Parameters<typeof agentHubLeaseRowsToListings>[0];
-      };
-      const syncedAt = localStorage.getItem(AGENTHUB_SYNC_KEY);
-      if (!force && syncedAt && syncedAt >= data.scraped_at) {
-        if (!quiet) setSyncNote("Already up to date with Agent Hub");
-        return loadLeaseListings();
-      }
-      const imported = agentHubLeaseRowsToListings(data.rows);
-      const stored = loadLeaseListings();
-      const manual = stripLegacySeedListings(stored);
-      const next = mergeAgentHubLeaseListings(manual, imported);
-      saveLeaseListings(next);
-      localStorage.setItem(AGENTHUB_SYNC_KEY, data.scraped_at);
-      if (!quiet) setSyncNote(`Imported ${imported.length} leases from Agent Hub`);
       return next;
     } finally {
       if (!quiet) setSyncing(false);
@@ -124,14 +88,9 @@ export function LeaseListingsPanel({
     (async () => {
       let next = loadLeaseListings();
       try {
-        next = (await syncFromZipForm(false, true)) ?? next;
+        next = (await syncFromZipForm(true)) ?? next;
       } catch {
         /* zipform file optional until first scrape */
-      }
-      try {
-        next = (await syncFromAgentHub(false, true)) ?? next;
-      } catch {
-        /* agenthub optional */
       }
       if (!cancelled) {
         setListings(next.length ? next : LEASE_LISTINGS);
@@ -231,15 +190,14 @@ export function LeaseListingsPanel({
             style={{ fontSize: "0.82rem" }}
             disabled={syncing}
             onClick={async () => {
-              let next: LeaseListing[] | undefined;
               try {
-                next = await syncFromZipForm(true);
+                const next = await syncFromZipForm();
+                if (next) {
+                  setListings(next);
+                  onListingsChange?.(next);
+                }
               } catch {
-                next = await syncFromAgentHub(true);
-              }
-              if (next) {
-                setListings(next);
-                onListingsChange?.(next);
+                setSyncNote("Could not load ZipForm lease data");
               }
             }}
           >
@@ -275,7 +233,7 @@ export function LeaseListingsPanel({
       )}
 
       <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-        Leases import from Agent Hub on load. Click <strong>+ Add lease</strong> for manual entries, or{" "}
+        Leases import from ZipForm on load. Click <strong>+ Add lease</strong> for manual entries, or{" "}
         <strong>Edit</strong> to update a row.
         {syncNote && (
           <span style={{ display: "block", marginTop: "0.35rem", color: "#34d399" }}>{syncNote}</span>
