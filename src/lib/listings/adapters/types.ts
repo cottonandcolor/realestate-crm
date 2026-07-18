@@ -1,12 +1,28 @@
-export type PropertyType = "sfh" | "condo" | "townhome" | "land" | "lease" | "rental";
+export type PropertyType =
+  | "sfh"
+  | "condo"
+  | "townhome"
+  | "land"
+  | "commercial"
+  | "lease"
+  | "rental";
 
-export const PROPERTY_TYPES: PropertyType[] = ["sfh", "condo", "townhome", "land", "lease", "rental"];
+export const PROPERTY_TYPES: PropertyType[] = [
+  "sfh",
+  "condo",
+  "townhome",
+  "land",
+  "commercial",
+  "lease",
+  "rental",
+];
 
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   sfh: "Single Family Home",
   condo: "Condo",
   townhome: "Townhome",
   land: "Land",
+  commercial: "Commercial",
   lease: "Lease",
   rental: "Rental",
 };

@@ -8,6 +8,7 @@ const TYPE_LABELS: Record<PropertyType, string> = {
   condo: "Condo",
   townhome: "Townhome",
   land: "Land",
+  commercial: "Commercial",
   lease: "Lease",
   rental: "Rental",
 };
@@ -17,6 +18,7 @@ const TYPE_COLORS: Record<PropertyType, string> = {
   condo:    "#22d3ee",
   townhome: "#a78bfa",
   land:     "#fbbf24",
+  commercial: "#fb923c",
   lease:    "#818cf8",
   rental:   "#fb7185",
 };
@@ -26,12 +28,13 @@ const LISTING_ICONS: Record<PropertyType, string> = {
   condo:    "🏢",
   townhome: "🏘",
   land:     "🌿",
+  commercial: "🏬",
   lease:    "🔑",
   rental:   "🏠",
 };
 
 const ALL_TYPES: (PropertyType | "all")[] = [
-  "all", "sfh", "condo", "townhome", "land", "lease", "rental",
+  "all", "sfh", "condo", "townhome", "land", "commercial", "lease", "rental",
 ];
 
 function TypeBadge({ type }: { type: PropertyType }) {
@@ -53,6 +56,46 @@ function TypeBadge({ type }: { type: PropertyType }) {
     >
       {LISTING_ICONS[type]} {TYPE_LABELS[type]}
     </span>
+  );
+}
+
+function ListingMetadata({ listing }: { listing: Listing }) {
+  const metadata = listing.metadata ?? {};
+  const area = typeof metadata.area === "string" ? metadata.area : null;
+  const listingUrl =
+    typeof metadata.listing_url === "string" ? metadata.listing_url : null;
+  const specs = [
+    typeof metadata.beds === "number" ? `${metadata.beds} bd` : null,
+    typeof metadata.baths === "number" ? `${metadata.baths} ba` : null,
+    typeof metadata.square_feet === "number"
+      ? `${metadata.square_feet.toLocaleString()} sq ft`
+      : null,
+    typeof metadata.acres === "number" ? `${metadata.acres} acres` : null,
+  ].filter(Boolean);
+
+  return (
+    <>
+      {area && (
+        <p style={{ fontSize: "0.78rem", opacity: 0.68, marginTop: "0.35rem" }}>
+          {area}
+        </p>
+      )}
+      {specs.length > 0 && (
+        <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "0.35rem" }}>
+          {specs.join(" · ")}
+        </p>
+      )}
+      {listingUrl && (
+        <a
+          href={listingUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{ display: "inline-block", fontSize: "0.8rem", marginTop: "0.55rem" }}
+        >
+          View property details ↗
+        </a>
+      )}
+    </>
   );
 }
 
@@ -140,6 +183,7 @@ export function ListingsGrid({ listings }: { listings: Listing[] }) {
               {l.address && (
                 <p style={{ fontSize: "0.85rem", opacity: 0.8 }}>{l.address}</p>
               )}
+              <ListingMetadata listing={l} />
             </div>
           </div>
         ))}

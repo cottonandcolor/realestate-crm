@@ -3,12 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserOrgId } from "@/lib/org";
 import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { getDemoStore } from "@/lib/demo/store";
+import { mergeWebsiteListings } from "@/lib/websiteListings";
 
 export async function GET() {
   const demoUser = await getDemoUserFromCookies();
   if (demoUser) {
     const { listings } = getDemoStore();
-    return NextResponse.json(listings);
+    return NextResponse.json(mergeWebsiteListings(listings));
   }
 
   const supabase = await createClient();
@@ -27,5 +28,5 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data ?? []);
+  return NextResponse.json(mergeWebsiteListings(data ?? []));
 }

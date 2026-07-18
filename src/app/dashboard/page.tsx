@@ -7,12 +7,14 @@ import { getDemoUserFromCookies } from "@/lib/demo/session";
 import { getDemoStore } from "@/lib/demo/store";
 import { normalizeLead } from "@/lib/leads/db";
 import type { Lead } from "@/lib/types/database";
+import { mergeWebsiteListings } from "@/lib/websiteListings";
 
 export default async function DashboardPage() {
   const demoUser = await getDemoUserFromCookies();
 
   if (demoUser) {
-    const { leads, listings, projects, tasks, contacts } = getDemoStore();
+    const { leads, listings: storedListings, projects, tasks, contacts } = getDemoStore();
+    const listings = mergeWebsiteListings(storedListings);
     const contactsWithLeads = contacts.map((c) => ({
       ...c,
       leads: leads
@@ -51,6 +53,18 @@ export default async function DashboardPage() {
 
   let orgId = await getUserOrgId(supabase);
   if (!orgId) orgId = await ensureUserOrg(supabase, "My Real Estate Team");
+
+  // Remove the old sample listings that predated the website listings sync.
+  await supabase
+    .from("listings")
+    .delete()
+    .eq("org_id", orgId)
+    .in("external_source", ["seed", "demo"]);
+  await supabase
+    .from("listings")
+    .delete()
+    .eq("org_id", orgId)
+    .like("external_id", "demo-%");
 
   const [
     { data: leads },
@@ -92,7 +106,7 @@ export default async function DashboardPage() {
       <Header email={user.email} />
       <DashboardTabs
         leads={allLeads}
-        listings={listingsFresh.data ?? []}
+        listings={mergeWebsiteListings(listingsFresh.data ?? [])}
         tasks={tasksFresh.data ?? []}
         projects={projectsFresh.data ?? projects ?? []}
         contacts={contactsWithLeads}
@@ -114,10 +128,6 @@ async function seedDemoData(
     { org_id: orgId, name: "Alice Johnson", email: "alice@example.com", phone: "555-1234", tags: ["Buyer"],    stage: "new",       assigned_agent_id: userId },
     { org_id: orgId, name: "Bob Smith",     email: "bob@example.com",   phone: "555-5678", tags: ["Seller"],   stage: "contacted", assigned_agent_id: userId },
     { org_id: orgId, name: "Carol Lee",     email: "carol@example.com", phone: "555-9012", tags: ["Investor"], stage: "qualified" },
-  ]);
-  await supabase.from("listings").insert([
-    { org_id: orgId, title: "Modern Condo",     address: "123 Main St", price_display: "$2,400 / month", status: "active", external_source: "seed", external_id: "demo-condo-1" },
-    { org_id: orgId, title: "Spacious Townhouse", address: "456 Oak Ave", price_display: "$3,200 / month", status: "active", external_source: "seed", external_id: "demo-town-2" },
   ]);
   await supabase.from("tasks").insert([
     { org_id: orgId, title: "Call new leads",             status: "todo",       assigned_agent_id: userId },

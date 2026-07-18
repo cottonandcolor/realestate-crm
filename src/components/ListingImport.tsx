@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 
-const SAMPLE_CSV = `title,address,price,status,property_type,external_id
-Modern Condo,123 Main St Austin TX,$2400 / month,active,condo,condo-001
-Spacious Townhouse,456 Oak Ave,$3200 / month,active,townhome,town-002
-Green Acres Plot,789 Country Rd,$150000,active,land,land-003
-Oak Street Rental,321 Oak St,$1800 / month,active,rental,rental-004`;
+const EMPTY_CSV = "title,address,price,status,property_type,external_id,image_url";
 
 export function ListingImport({
   demoMode = false,
@@ -17,7 +13,7 @@ export function ListingImport({
   compact?: boolean;
   onImported?: () => void | Promise<void>;
 }) {
-  const [csv, setCsv] = useState(SAMPLE_CSV);
+  const [csv, setCsv] = useState(EMPTY_CSV);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(!compact);
