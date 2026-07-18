@@ -62,6 +62,8 @@ Once the GitHub repository is connected, pushes to `main` deploy automatically.
 
 Production: [realestatecrm-ochre.vercel.app](https://realestatecrm-ochre.vercel.app)
 
+Active website properties populate the Listings tab; lease records remain in Lease Listings.
+
 ## Listing import
 
 - **CSV:** Use the import panel on the dashboard, or `POST /api/listings/import` with `{ "source": "csv", "data": "..." }`.
