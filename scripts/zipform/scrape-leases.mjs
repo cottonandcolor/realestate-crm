@@ -16,6 +16,7 @@ import path from "path";
 const TRANSACTIONS_URL = "https://www.zipformplus.com/default.aspx";
 const OUTPUT_DIR = path.join(process.cwd(), ".zipform");
 const PROFILE_DIR = path.join(OUTPUT_DIR, "browser-profile");
+const SESSION_FILE = path.join(OUTPUT_DIR, "session.json");
 const OUTPUT_JSON = path.join(OUTPUT_DIR, "leases.json");
 const OUTPUT_CSV = path.join(OUTPUT_DIR, "leases.csv");
 
@@ -37,6 +38,8 @@ const CSV_FIELDS = [
 const headed = process.argv.includes("--headed");
 const listingsOnly = process.argv.includes("--listings-only");
 const missingOnly = process.argv.includes("--missing-only");
+const activeOnly = process.argv.includes("--active-only");
+const listOnly = process.argv.includes("--list-only");
 const limitArg = process.argv.find((a) => a.startsWith("--limit="));
 const limit = limitArg ? Number(limitArg.split("=")[1]) : Infinity;
 
@@ -103,21 +106,122 @@ async function prepareListView(page) {
 }
 
 /** @param {import('playwright').Page} page */
-async function collectLeaseListRows(page) {
-  await prepareListView(page);
+async function selectStatusGroup(page, status) {
+  const matcher = new RegExp(`^${status}\\s*\\(\\s*\\d+\\s*\\)$`, "i");
+  const statusWrap = page.locator(`.status-wrap.${status.toLowerCase()}`).first();
+  if (await statusWrap.isVisible().catch(() => false)) {
+    const collapsed = await statusWrap.evaluate((element) =>
+      element.classList.contains("closedBlock"),
+    );
+    if (!collapsed) return true;
+    const expand = statusWrap.locator(".icon-arrow-right").first();
+    await expand.click({ force: true, timeout: 5000 });
+    await page
+      .waitForFunction(
+        ({ selector }) => !document.querySelector(selector)?.classList.contains("closedBlock"),
+        { selector: `.status-wrap.${status.toLowerCase()}` },
+        { timeout: 15000 },
+      )
+      .catch(() => {});
+    await page.waitForTimeout(2500);
+    const expanded = await statusWrap
+      .evaluate((element) => !element.classList.contains("closedBlock"))
+      .catch(() => false);
+    if (expanded) return true;
+  }
+  const matches = page.getByText(matcher, { exact: true });
+  const count = await matches.count();
+  for (let i = 0; i < count; i++) {
+    const label = matches.nth(i);
+    if (!(await label.isVisible().catch(() => false))) continue;
+    const before = await page
+      .locator("tr.txn-item")
+      .evaluateAll((rows) => rows.slice(0, 3).map((row) => (row.textContent || "").trim()).join("|"))
+      .catch(() => "");
+    const clickable = label.locator(
+      "xpath=ancestor-or-self::*[self::a or self::button or @role='tab'][1]",
+    );
+    if (await clickable.count()) {
+      await clickable.click({ force: true, timeout: 5000 });
+    } else {
+      await label.click({ force: true, timeout: 5000 });
+    }
+    await page.waitForTimeout(1800);
+    await page.waitForSelector("tr.txn-item", { timeout: 15000 }).catch(() => {});
+    const selected = await label
+      .evaluate((element) => {
+        const control = element.closest("a, button, [role='tab'], li") || element;
+        return (
+          control.getAttribute("aria-selected") === "true" ||
+          /\b(active|selected|current)\b/i.test(control.className || "")
+        );
+      })
+      .catch(() => false);
+    const after = await page
+      .locator("tr.txn-item")
+      .evaluateAll((rows) => rows.slice(0, 3).map((row) => (row.textContent || "").trim()).join("|"))
+      .catch(() => "");
+    if (selected || (before && after && before !== after)) return true;
+  }
+  if (/^closed$/i.test(status)) {
+    const hints = await page.evaluate(() =>
+      [...document.querySelectorAll("a, button, li, [role], span")]
+        .filter((element) => {
+          const text = (element.textContent || "").trim();
+          const rect = element.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && /(Active|Closed|\(\s*41\s*\)|\(\s*93\s*\))/i.test(text);
+        })
+        .slice(0, 30)
+        .map((element) => ({
+          tag: element.tagName,
+          text: (element.textContent || "").trim().replace(/\s+/g, " ").slice(0, 180),
+          id: element.id,
+          className: String(element.className || ""),
+          role: element.getAttribute("role"),
+          href: element.getAttribute("href"),
+          parent: element.parentElement?.outerHTML.slice(0, 500) || "",
+        })),
+    );
+    console.log(`  Closed-group controls: ${JSON.stringify(hints)}`);
+  }
+  return false;
+}
 
-  for (let i = 0; i < 35; i++) {
-    const before = await page.locator("tr.txn-item").count();
-    await page.mouse.wheel(0, 1400);
-    await page.waitForTimeout(200);
-    const after = await page.locator("tr.txn-item").count();
-    if (after === before && i > 8) break;
+/** @param {import('playwright').Page} page */
+async function collectVisibleLeaseRows(page, statusGroup) {
+  const groupKey = statusGroup.toLowerCase();
+  const list = page.locator(`#status-${groupKey}`);
+  const expected =
+    Number(
+      await page
+        .locator(`.status-wrap.${groupKey} .count`)
+        .first()
+        .getAttribute("data-val")
+        .catch(() => "0"),
+    ) || 0;
+  const showMore = list.locator("xpath=..").locator(`a.showMoreBtn.${groupKey}`).first();
+
+  for (let i = 0; i < 20; i++) {
+    const before = await list.locator("tr.txn-item").count();
+    if (expected && before >= expected) break;
+    if (!(await showMore.isVisible().catch(() => false))) break;
+    await showMore.click({ force: true, timeout: 5000 });
+    await page
+      .waitForFunction(
+        ({ selector, count }) => document.querySelectorAll(`${selector} tr.txn-item`).length > count,
+        { selector: `#status-${groupKey}`, count: before },
+        { timeout: 10000 },
+      )
+      .catch(() => {});
+    await page.waitForTimeout(500);
+    const after = await list.locator("tr.txn-item").count();
+    if (after <= before) break;
   }
 
-  return page.evaluate((listingsOnlyFlag) => {
+  return list.locator("tr.txn-item").evaluateAll((elements, { listingsOnlyFlag, fallbackStatus }) => {
     const rows = [];
     const seen = new Set();
-    for (const tr of document.querySelectorAll("tr.txn-item")) {
+    for (const tr of elements) {
       const text = (tr.innerText || "").trim();
       if (!text) continue;
       const typeMatch = text.match(/Type:\s*([^\n\t]+)/i);
@@ -142,7 +246,8 @@ async function collectLeaseListRows(page) {
       const status =
         [...tr.querySelectorAll("td")]
           .map((td) => (td.textContent || "").trim())
-          .find((t) => /^(Active|Pending|Closed|Inactive|Prospect|Fell Through)$/i.test(t)) || "";
+          .find((t) => /^(Active|Pending|Closed|Inactive|Prospect|Fell Through)$/i.test(t)) ||
+        fallbackStatus;
       const created =
         (tr.querySelector('td[data-th="Created"]')?.textContent || "").trim() ||
         (tr.querySelector('td[data-th="CREATED"]')?.textContent || "").trim();
@@ -167,7 +272,27 @@ async function collectLeaseListRows(page) {
       });
     }
     return rows;
-  }, listingsOnly);
+  }, { listingsOnlyFlag: listingsOnly, fallbackStatus: statusGroup });
+}
+
+/** @param {import('playwright').Page} page */
+async function collectLeaseListRows(page) {
+  await prepareListView(page);
+  const groups = activeOnly ? ["Active"] : ["Active", "Closed"];
+  const combined = new Map();
+
+  for (const group of groups) {
+    const selected = await selectStatusGroup(page, group);
+    if (!selected) {
+      console.log(`  (${group} transaction group not found — skipping)`);
+      continue;
+    }
+    const rows = await collectVisibleLeaseRows(page, group);
+    console.log(`  ${group}: ${rows.length} lease transaction(s)`);
+    for (const row of rows) combined.set(row.key, row);
+  }
+
+  return [...combined.values()];
 }
 
 /** @param {import('playwright').Page} page */
@@ -421,6 +546,9 @@ async function scrapeLeaseFormDates(page, context, label = "") {
 function listReadyFn() {
   return () => {
     const t = document.body?.innerText || "";
+    if (/Enter your username and password/i.test(t) && /E-mail address:/i.test(t)) {
+      return false;
+    }
     return (
       /Active\s*\(\s*\d+\s*\)/i.test(t) ||
       /TRANSACTION NAME/i.test(t) ||
@@ -524,6 +652,8 @@ async function openTransaction(page, row) {
   const name = row.transaction_name || "";
   const tid = (row.transaction_id || "").trim();
   const addr = (row.property_address || "").trim();
+  const statusGroup = /^closed$/i.test(row.status || "") ? "Closed" : "Active";
+  await selectStatusGroup(page, statusGroup).catch(() => {});
   const searchTerms = [
     tid,
     name.replace(/\s*-\s*LEASE$/i, "").slice(0, 36),
@@ -578,6 +708,7 @@ async function launchZipForm() {
     headless: !headed,
     slowMo: headed ? 35 : 0,
     viewport: null,
+    ...(fs.existsSync(SESSION_FILE) ? { storageState: SESSION_FILE } : {}),
   });
   const p = ctx.pages()[0] || (await ctx.newPage());
   return { context: ctx, page: p };
@@ -628,7 +759,6 @@ try {
     await page.screenshot({ path: path.join(OUTPUT_DIR, "leases-debug.png"), fullPage: true });
     throw new Error("No lease rows found");
   }
-
   // Prefer Active leases first
   listRows.sort((a, b) => {
     const rank = (s) => (/^active$/i.test(s) ? 0 : /^pending$/i.test(s) ? 1 : 2);
@@ -647,6 +777,35 @@ try {
     } catch {
       /* ignore */
     }
+  }
+
+  const discoveredKeys = new Set(
+    listRows.map((row) => (row.transaction_id || row.key || "").toLowerCase()),
+  );
+  for (const key of priorByKey.keys()) {
+    if (!discoveredKeys.has(key)) priorByKey.delete(key);
+  }
+
+  // Save every discovered transaction immediately, even before form-date enrichment.
+  // This makes the complete Active + Closed roster available to the CRM while
+  // preserving dates already scraped in earlier passes.
+  for (const row of listRows) {
+    const key = (row.transaction_id || row.key || "").toLowerCase();
+    const previous = priorByKey.get(key) || {};
+    priorByKey.set(key, {
+      ...previous,
+      ...row,
+      lease_start_date: previous.lease_start_date || "",
+      lease_end_date: previous.lease_end_date || "",
+      monthly_rent: previous.monthly_rent || "",
+    });
+  }
+  writeProgress(priorByKey);
+  console.log(`Saved ${priorByKey.size} discovered lease transaction(s) before date enrichment`);
+
+  if (listOnly) {
+    await context.close().catch(() => {});
+    process.exit(0);
   }
 
   if (missingOnly) {

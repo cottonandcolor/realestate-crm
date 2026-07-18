@@ -59,7 +59,7 @@ if (!fs.existsSync(INPUT)) {
 
 const payload = JSON.parse(fs.readFileSync(INPUT, "utf8"));
 const leases = (payload.rows || [])
-  .filter((tx) => /lease/i.test(tx.transaction_type || tx.transaction_name || ""))
+  .filter((tx) => /lease/i.test(`${tx.transaction_type || ""} ${tx.transaction_name || ""}`))
   .map((tx) => {
     const { address, city } = parseAddress(tx.property_address || tx.transaction_name);
     const id = tx.transaction_id ? `zipform-${tx.transaction_id}` : `zipform-${(tx.transaction_name || address).replace(/\W+/g, "-").toLowerCase()}`;

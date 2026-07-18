@@ -71,7 +71,13 @@ try {
     .waitForFunction(
       () => {
         const t = document.body?.innerText || "";
-        return /Active\s*\(\s*\d+\s*\)/i.test(t) || /TRANSACTION NAME/i.test(t);
+        if (/Enter your username and password/i.test(t) && /E-mail address:/i.test(t)) {
+          return false;
+        }
+        return (
+          document.querySelectorAll("tr.txn-item").length > 0 ||
+          (/Active\s*\(\s*\d+\s*\)/i.test(t) && /Transactions|TRANSACTION NAME/i.test(t))
+        );
       },
       undefined,
       { timeout: WAIT_MS },
@@ -94,7 +100,13 @@ try {
     await page.waitForFunction(
       () => {
         const t = document.body?.innerText || "";
-        return /Active\s*\(\s*\d+\s*\)/i.test(t) || /TRANSACTION NAME/i.test(t);
+        if (/Enter your username and password/i.test(t) && /E-mail address:/i.test(t)) {
+          return false;
+        }
+        return (
+          document.querySelectorAll("tr.txn-item").length > 0 ||
+          (/Active\s*\(\s*\d+\s*\)/i.test(t) && /Transactions|TRANSACTION NAME/i.test(t))
+        );
       },
       undefined,
       { timeout: 60000 },
