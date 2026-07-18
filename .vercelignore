@@ -1,0 +1,14 @@
+# Keep Vercel upload under the 10MB limit
+node_modules
+.next
+.tools
+.zipform
+.agenthub
+.git
+coverage
+*.png
+*.jpg
+*.jpeg
+.env
+.env.*
+!.env.example
