@@ -80,109 +80,21 @@ export interface LeaseListing {
   type: LeaseListingType;
 }
 
-/** Handwritten lease roster (Jun 2026) */
-export const LEASE_LISTINGS: LeaseListing[] = [
-  {
-    id: "lease-001",
-    address: "1401 Little Elm Trl #114",
-    city: "Cedar Park",
-    leaseStart: "2026-06-15",
-    leaseEnd: "2028-05-31",
-    contacts: ["Anitha Mareedu"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-002",
-    address: "1401 Little Elm Trl #114",
-    city: "Cedar Park",
-    leaseStart: "2026-06-15",
-    leaseEnd: "2028-05-31",
-    contacts: ["Muriel Wang"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-003",
-    address: "107 Helen Cv",
-    city: "Hutto",
-    leaseStart: "2026-06-01",
-    leaseEnd: "2027-05-31",
-    contacts: ["Vinayak Shanbhogue"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-004",
-    address: "107 Helen Cv",
-    city: "Hutto",
-    leaseStart: "2026-06-01",
-    leaseEnd: "2027-05-31",
-    contacts: ["Manuel"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-005",
-    address: "14815 Avery Ranch",
-    city: "Cedar Park",
-    leaseStart: "2026-02-15",
-    leaseEnd: "2027-02-14",
-    contacts: ["Sundarraman Kalyanaraman"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-006",
-    address: "14815 Avery Ranch",
-    city: "Cedar Park",
-    leaseStart: "2026-02-15",
-    leaseEnd: "2027-02-14",
-    contacts: ["Zoe Kim"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-007",
-    address: "914 Washburn Dr",
-    city: "Leander",
-    leaseStart: "2026-07-01",
-    leaseEnd: "2027-06-30",
-    contacts: ["Katelyn Rodriguez", "Paul Youmans"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-008",
-    address: "914 Washburn Dr",
-    city: "Leander",
-    leaseStart: "2026-07-01",
-    leaseEnd: "2027-06-30",
-    contacts: ["Vinayak Shanbhogue"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-009",
-    address: "1977 Alasio Dr",
-    city: "Leander",
-    leaseStart: "2026-03-16",
-    leaseEnd: "2027-03-31",
-    contacts: ["Juhi Kumar", "Varun"],
-    type: "tenant-rep",
-  },
-  {
-    id: "lease-010",
-    address: "18024 Stefano Dr",
-    city: "Pflugerville",
-    leaseStart: "2026-05-01",
-    leaseEnd: "2027-05-31",
-    contacts: ["Brandon Taylor", "Tavia Taylor"],
-    type: "tenant-rep",
-  },
-];
+/** Fallback before Agent Hub sync runs in the browser */
+export const LEASE_LISTINGS: LeaseListing[] = [];
 
 export const LEASE_ENDING_ALERT_DAYS = 75;
 
 export function daysUntilLeaseEnd(leaseEnd: string): number {
+  if (!leaseEnd) return Number.POSITIVE_INFINITY;
   const end = new Date(leaseEnd + "T23:59:59");
+  if (Number.isNaN(end.getTime())) return Number.POSITIVE_INFINITY;
   const now = new Date();
   return Math.ceil((end.getTime() - now.getTime()) / 86400000);
 }
 
 export function isLeaseEndingWithinDays(leaseEnd: string, days: number): boolean {
+  if (!leaseEnd) return false;
   const left = daysUntilLeaseEnd(leaseEnd);
   return left >= 0 && left <= days;
 }

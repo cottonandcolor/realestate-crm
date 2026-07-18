@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  AGENTHUB_SYNC_KEY,
+  ZIPFORM_SYNC_KEY,
+  agentHubLeaseRowsToListings,
+  mergeAgentHubLeaseListings,
+  stripLegacySeedListings,
+} from "@/lib/agenthub/leaseImport";
+import {
   LEASE_LISTINGS,
   LEASE_ENDING_ALERT_DAYS,
   LEASE_TYPE_LABELS,
@@ -20,10 +27,11 @@ import {
 
 type SortKey = "property" | "leaseStart" | "leaseEnd" | "contacts" | "type";
 
-function leaseStatus(end: string): "active" | "ending-soon" | "ended" {
-  const now = new Date();
+function leaseStatus(end: string): "active" | "ending-soon" | "ended" | "unknown" {
+  if (!end) return "unknown";
   const endDate = new Date(end + "T23:59:59");
-  const daysLeft = (endDate.getTime() - now.getTime()) / 86400000;
+  if (Number.isNaN(endDate.getTime())) return "unknown";
+  const daysLeft = (endDate.getTime() - Date.now()) / 86400000;
   if (daysLeft < 0) return "ended";
   if (daysLeft <= LEASE_ENDING_ALERT_DAYS) return "ending-soon";
   return "active";
@@ -33,25 +41,113 @@ const STATUS_STYLE = {
   active: { bg: "rgba(52,211,153,0.2)", color: "#34d399", label: "Active" },
   "ending-soon": { bg: "rgba(251,191,36,0.2)", color: "#fbbf24", label: "Ending soon" },
   ended: { bg: "rgba(229,62,62,0.2)", color: "#fc8181", label: "Ended" },
+  unknown: { bg: "rgba(148,163,184,0.2)", color: "#94a3b8", label: "TBD" },
 };
 
 const inputStyle = { margin: 0, fontSize: "0.82rem", width: "100%", minWidth: 0 } as const;
 
-export function LeaseListingsPanel() {
+export function LeaseListingsPanel({
+  onListingsChange,
+}: {
+  onListingsChange?: (listings: LeaseListing[]) => void;
+} = {}) {
   const [listings, setListings] = useState<LeaseListing[]>(LEASE_LISTINGS);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("leaseEnd");
   const [sortAsc, setSortAsc] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNote, setSyncNote] = useState<string | null>(null);
+
+  async function syncFromZipForm(force = false, quiet = false) {
+    if (!quiet) {
+      setSyncing(true);
+      setSyncNote(null);
+    }
+    try {
+      const res = await fetch("/data/zipform-leases.json");
+      if (!res.ok) throw new Error("ZipForm lease data not found");
+      const data = (await res.json()) as {
+        scraped_at: string;
+        rows: Parameters<typeof agentHubLeaseRowsToListings>[0];
+      };
+      const syncedAt = localStorage.getItem(ZIPFORM_SYNC_KEY);
+      if (!force && syncedAt && syncedAt >= data.scraped_at) {
+        if (!quiet) setSyncNote("Already up to date with ZipForm");
+        return loadLeaseListings();
+      }
+      const imported = agentHubLeaseRowsToListings(data.rows);
+      const stored = loadLeaseListings().filter((l) => !l.id.startsWith("zipform-"));
+      const next = mergeAgentHubLeaseListings(stored, imported);
+      saveLeaseListings(next);
+      localStorage.setItem(ZIPFORM_SYNC_KEY, data.scraped_at);
+      if (!quiet) setSyncNote(`Imported ${imported.length} leases from ZipForm`);
+      return next;
+    } finally {
+      if (!quiet) setSyncing(false);
+    }
+  }
+
+  async function syncFromAgentHub(force = false, quiet = false) {
+    if (!quiet) {
+      setSyncing(true);
+      setSyncNote(null);
+    }
+    try {
+      const res = await fetch("/data/agenthub-leases.json");
+      if (!res.ok) throw new Error("Agent Hub lease data not found");
+      const data = (await res.json()) as {
+        scraped_at: string;
+        rows: Parameters<typeof agentHubLeaseRowsToListings>[0];
+      };
+      const syncedAt = localStorage.getItem(AGENTHUB_SYNC_KEY);
+      if (!force && syncedAt && syncedAt >= data.scraped_at) {
+        if (!quiet) setSyncNote("Already up to date with Agent Hub");
+        return loadLeaseListings();
+      }
+      const imported = agentHubLeaseRowsToListings(data.rows);
+      const stored = loadLeaseListings();
+      const manual = stripLegacySeedListings(stored);
+      const next = mergeAgentHubLeaseListings(manual, imported);
+      saveLeaseListings(next);
+      localStorage.setItem(AGENTHUB_SYNC_KEY, data.scraped_at);
+      if (!quiet) setSyncNote(`Imported ${imported.length} leases from Agent Hub`);
+      return next;
+    } finally {
+      if (!quiet) setSyncing(false);
+    }
+  }
 
   useEffect(() => {
-    setListings(loadLeaseListings());
+    let cancelled = false;
+    (async () => {
+      let next = loadLeaseListings();
+      try {
+        next = (await syncFromZipForm(false, true)) ?? next;
+      } catch {
+        /* zipform file optional until first scrape */
+      }
+      try {
+        next = (await syncFromAgentHub(false, true)) ?? next;
+      } catch {
+        /* agenthub optional */
+      }
+      if (!cancelled) {
+        setListings(next.length ? next : LEASE_LISTINGS);
+        onListingsChange?.(next.length ? next : LEASE_LISTINGS);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
   function persist(next: LeaseListing[]) {
     setListings(next);
     saveLeaseListings(next);
+    onListingsChange?.(next);
   }
 
   function updateListing(id: string, patch: Partial<LeaseListing>) {
@@ -131,6 +227,26 @@ export function LeaseListingsPanel() {
           </span>
           <button
             type="button"
+            className="btn"
+            style={{ fontSize: "0.82rem" }}
+            disabled={syncing}
+            onClick={async () => {
+              let next: LeaseListing[] | undefined;
+              try {
+                next = await syncFromZipForm(true);
+              } catch {
+                next = await syncFromAgentHub(true);
+              }
+              if (next) {
+                setListings(next);
+                onListingsChange?.(next);
+              }
+            }}
+          >
+            {syncing ? "Syncing…" : "Sync leases"}
+          </button>
+          <button
+            type="button"
             className="btn btn-primary"
             style={{ fontSize: "0.82rem" }}
             onClick={() => setShowAddForm((v) => !v)}
@@ -159,7 +275,11 @@ export function LeaseListingsPanel() {
       )}
 
       <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", opacity: 0.55 }}>
-        Click <strong>+ Add lease</strong> to create a new entry, or <strong>Edit</strong> on any row to update it.
+        Leases import from Agent Hub on load. Click <strong>+ Add lease</strong> for manual entries, or{" "}
+        <strong>Edit</strong> to update a row.
+        {syncNote && (
+          <span style={{ display: "block", marginTop: "0.35rem", color: "#34d399" }}>{syncNote}</span>
+        )}
       </p>
 
       <table className="glass">

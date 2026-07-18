@@ -42,3 +42,10 @@ export function isContactOverdue(iso: string | null): boolean {
 export function isContactDue(iso: string | null): boolean {
   return isContactDueToday(iso) || isContactOverdue(iso);
 }
+
+/** End of the current local calendar day (for task due comparisons). */
+export function endOfToday(): Date {
+  const d = new Date();
+  d.setHours(23, 59, 59, 999);
+  return d;
+}

@@ -415,15 +415,21 @@ export function ProjectTasksPanel({
   tasks: initialTasks,
   contacts = [],
   demoMode = false,
+  onTasksChange,
+  onReminderCleared,
 }: {
   projects: Project[];
   tasks: Task[];
   contacts?: Contact[];
   demoMode?: boolean;
+  onTasksChange?: (tasks: Task[]) => void;
+  onReminderCleared?: (contactId: string) => void;
 }) {
   const [view, setView] = useState<ViewMode>("projects");
   const [projects, setProjects] = useState(() => sortProjectsByOrder(initialProjects));
   const [tasks, setTasks] = useState(initialTasks);
+  const tasksSigRef = useRef("");
+  const lastReportedTasksRef = useRef("");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [newProjectName, setNewProjectName] = useState("");
   const [status, setStatus] = useState("");
@@ -438,6 +444,22 @@ export function ProjectTasksPanel({
       setProjects(sortProjectsByOrder(initialProjects));
     }
   }, [initialProjects]);
+
+  useEffect(() => {
+    const sig = initialTasks.map((t) => `${t.id}:${t.status}:${t.due_at ?? ""}:${t.title}`).join("|");
+    if (sig !== tasksSigRef.current) {
+      tasksSigRef.current = sig;
+      lastReportedTasksRef.current = sig;
+      setTasks(initialTasks);
+    }
+  }, [initialTasks]);
+
+  useEffect(() => {
+    const sig = tasks.map((t) => `${t.id}:${t.status}:${t.due_at ?? ""}:${t.title}`).join("|");
+    if (sig === lastReportedTasksRef.current) return;
+    lastReportedTasksRef.current = sig;
+    onTasksChange?.(tasks);
+  }, [tasks, onTasksChange]);
 
   const unassigned = useMemo(
     () => sortTasksByOrder(tasks.filter((t) => !t.project_id)),
@@ -599,7 +621,7 @@ export function ProjectTasksPanel({
 
   return (
     <section className="tasks" id="tasks">
-      <UpcomingRemindersBanner contacts={contacts} />
+      <UpcomingRemindersBanner contacts={contacts} onReminderCleared={onReminderCleared} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
         <h2 style={{ margin: 0 }}>Tasks</h2>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -636,7 +658,7 @@ export function ProjectTasksPanel({
       </div>
 
       {view === "board" ? (
-        <KanbanBoard tasks={tasks} demoMode={demoMode} />
+        <KanbanBoard tasks={tasks} demoMode={demoMode} onTasksChange={setTasks} />
       ) : (
         <>
           <p style={{ margin: "0 0 1rem", fontSize: "0.88rem", opacity: 0.75 }}>

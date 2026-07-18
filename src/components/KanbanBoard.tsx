@@ -13,13 +13,14 @@ const COLUMNS: { status: TaskStatus; label: string }[] = [
 ];
 
 export function KanbanBoard({
-  tasks: initial,
+  tasks,
   demoMode = false,
+  onTasksChange,
 }: {
   tasks: Task[];
   demoMode?: boolean;
+  onTasksChange: (tasks: Task[]) => void;
 }) {
-  const [tasks, setTasks] = useState(initial);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newDue, setNewDue] = useState("");
@@ -33,8 +34,12 @@ export function KanbanBoard({
     return tasks.filter((t) => t.status === status);
   }
 
+  function updateTasks(updater: (prev: Task[]) => Task[]) {
+    onTasksChange(updater(tasks));
+  }
+
   async function moveTask(taskId: string, status: TaskStatus) {
-    setTasks((prev) =>
+    updateTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status } : t))
     );
     if (demoMode) {
@@ -60,7 +65,7 @@ export function KanbanBoard({
     });
     if (res.ok) {
       const task = await res.json();
-      setTasks((prev) => [task, ...prev]);
+      updateTasks((prev) => [task, ...prev]);
       setNewTitle("");
       setNewDue("");
       setAddingStatus(null);
@@ -84,7 +89,7 @@ export function KanbanBoard({
     const title = titleDraft.trim();
     if (!title) return;
     const due_at = dueDraft ? new Date(dueDraft).toISOString() : null;
-    setTasks((prev) =>
+    updateTasks((prev) =>
       prev.map((t) => (t.id === id ? { ...t, title, due_at } : t))
     );
     cancelEdit();

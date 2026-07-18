@@ -1,0 +1,190 @@
+{
+  "scraped_at": "2026-06-07T01:51:10.430Z",
+  "source": "agenthub",
+  "row_count": 12,
+  "rows": [
+    {
+      "id": "agenthub-FC-26-0607",
+      "ref_number": "FC-26-0607",
+      "address": "1401 Little Elm Trail 114",
+      "city": "Cedar Park",
+      "leaseStart": "2026-06-15",
+      "leaseEnd": "2028-05-31",
+      "contacts": [
+        "Anitha Mareedu"
+      ],
+      "type": "landlord",
+      "status": "Broker Approved",
+      "monthly_rent": "$2,400.00",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/4df879ec-1828-44f5-87e5-b459f7ac99da"
+    },
+    {
+      "id": "agenthub-FC-26-0577",
+      "ref_number": "FC-26-0577",
+      "address": "107 Helen Cv",
+      "city": "Hutto",
+      "leaseStart": "2026-06-01",
+      "leaseEnd": "2027-05-31",
+      "contacts": [
+        "Vinayak Shanbhogue",
+        "Jyothi Prabhu"
+      ],
+      "type": "landlord",
+      "status": "Broker Approved",
+      "monthly_rent": "$1,829.00",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/050af43c-a53a-4f25-82c1-563b0c77d6c5"
+    },
+    {
+      "id": "agenthub-FC-26-0533",
+      "ref_number": "FC-26-0533",
+      "address": "18305 Rock Sage Cv",
+      "city": "Elgin",
+      "leaseStart": "2026-05-01",
+      "leaseEnd": "2027-04-30",
+      "contacts": [
+        "SENTHIL KUMAR DHARMARAJAN"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$1,500.00",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/1b6f2577-87ce-4e49-bf41-c1bf46ee4acf"
+    },
+    {
+      "id": "agenthub-FC-26-0522",
+      "ref_number": "FC-26-0522",
+      "address": "14815 Avery Ranch #3203",
+      "city": "Austin",
+      "leaseStart": "2026-02-15",
+      "leaseEnd": "2027-02-14",
+      "contacts": [
+        "Sundararaman Kalyanaraman",
+        "Parminder Singh Kocher"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$1,800.00",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/d73817ee-478e-439f-9fa7-3cb3e4a57216"
+    },
+    {
+      "id": "agenthub-FC-26-0275",
+      "ref_number": "FC-26-0275",
+      "address": "1977 Alasio Dr",
+      "city": "Leander",
+      "leaseStart": "2026-03-16",
+      "leaseEnd": "2027-03-31",
+      "contacts": [
+        "Juhi Kumar",
+        "Varun Parameswaran"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$2,800.00",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/757511ca-ca63-4a34-82bd-b9a46af7b8cf"
+    },
+    {
+      "id": "agenthub-FC-26-0274",
+      "ref_number": "FC-26-0274",
+      "address": "18024 Stefano Dr",
+      "city": "Pflugerville",
+      "leaseStart": "2026-05-01",
+      "leaseEnd": "2027-05-31",
+      "contacts": [
+        "Stefano properties LLC"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$2,295.00",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/032dd034-3836-4644-a807-8eceeadaaaa5"
+    },
+    {
+      "id": "agenthub-FC-26-0448",
+      "ref_number": "FC-26-0448",
+      "address": "1977 Alasio DR",
+      "city": "Leander",
+      "leaseStart": "",
+      "leaseEnd": "",
+      "contacts": [
+        "Juhi Kumar"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$0",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/ecbfb605-5ff9-4df5-b66e-d949ede408ac"
+    },
+    {
+      "id": "agenthub-FC-26-0413",
+      "ref_number": "FC-26-0413",
+      "address": "366 JOANNE Loop Unit B",
+      "city": "Buda",
+      "leaseStart": "",
+      "leaseEnd": "",
+      "contacts": [
+        "Chakradhar Karri"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$0",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/52e48f0c-d4eb-4eb6-a7fb-487f07ad0d3b"
+    },
+    {
+      "id": "agenthub-FC-26-0427",
+      "ref_number": "FC-26-0427",
+      "address": "9004 Gage DR",
+      "city": "Austin",
+      "leaseStart": "",
+      "leaseEnd": "",
+      "contacts": [
+        "arathi Kumar"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$0",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/81143564-b750-4fc0-8eca-8101ebcbbc32"
+    },
+    {
+      "id": "agenthub-FC-26-0406",
+      "ref_number": "FC-26-0406",
+      "address": "206 Sunny Brook DR",
+      "city": "Leander",
+      "leaseStart": "",
+      "leaseEnd": "",
+      "contacts": [
+        "Peilan Corrales"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$0",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/9cb215a9-73a6-4fd1-b842-85c0b9787b53"
+    },
+    {
+      "id": "agenthub-FC-25-0426",
+      "ref_number": "FC-25-0426",
+      "address": "14815 Avery Ranch BLVD #3203",
+      "city": "Austin",
+      "leaseStart": "",
+      "leaseEnd": "",
+      "contacts": [
+        "SUNDARARAMAN KALYANARAMAN"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$0",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/f47b955f-3625-489f-97a6-1abb7420cd48"
+    },
+    {
+      "id": "agenthub-FC-25-0391",
+      "ref_number": "FC-25-0391",
+      "address": "300 Fabion ST",
+      "city": "Kyle",
+      "leaseStart": "",
+      "leaseEnd": "",
+      "contacts": [
+        "Venkata Deveguptapu"
+      ],
+      "type": "landlord",
+      "status": "Closed",
+      "monthly_rent": "$0",
+      "detail_url": "https://www.fullcircle-agenthub.com/backoffice/transactions/651c301c-347b-468e-a4f1-a46c271d9ad0"
+    }
+  ]
+}

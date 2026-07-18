@@ -9,7 +9,13 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "agenthub:login": "PLAYWRIGHT_BROWSERS_PATH=0 node scripts/agenthub/login.mjs --auto",
+    "agenthub:scrape": "PLAYWRIGHT_BROWSERS_PATH=0 node scripts/agenthub/scrape-transactions.mjs",
+    "agenthub:sync-leases": "node scripts/agenthub/sync-lease-listings.mjs",
+    "zipform:login": "PLAYWRIGHT_BROWSERS_PATH=0 node scripts/zipform/login.mjs",
+    "zipform:scrape": "PLAYWRIGHT_BROWSERS_PATH=0 node scripts/zipform/scrape-leases.mjs --headed",
+    "zipform:sync-leases": "node scripts/zipform/sync-lease-listings.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -20,7 +26,8 @@
     "nodemailer": "^8.0.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "resend": "^4.8.0"
+    "resend": "^4.8.0",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
@@ -29,7 +36,9 @@
     "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^9.27.0",
     "eslint-config-next": "^15.3.3",
+    "playwright": "^1.60.0",
     "typescript": "^5.8.3",
+    "vercel": "^56.3.1",
     "vitest": "^4.1.7"
   }
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Contact, Lead, Listing, Project, Task } from "@/lib/types/database";
+import { isContactDue } from "@/lib/dates";
 import { DashboardCards } from "./DashboardCards";
 import { LeadsTable } from "./LeadsTable";
 import { ListingsGrid } from "./ListingsGrid";
@@ -12,13 +13,16 @@ import { ListingImport } from "./ListingImport";
 import { ExportPanel } from "./ExportPanel";
 import { ActivitiesTab } from "./ActivitiesTab";
 import { LeaseListingsPanel } from "./LeaseListingsPanel";
+import { EducationPanel } from "./EducationPanel";
+import { ContactDueBanner } from "./ContactDueBanner";
 import { useReminderNotifications } from "@/hooks/useReminderNotifications";
 import { getReminderAck, setReminderAck } from "@/lib/reminderAck";
-import { LEASE_LISTINGS } from "@/lib/leaseListings";
+import { loadLeaseListings, type LeaseListing } from "@/lib/leaseListings";
+import { effectiveStatus, loadEducationClasses } from "@/lib/educationClasses";
 
 type ContactWithLeads = Contact & { leads?: Pick<Lead, "id" | "name" | "stage">[] };
 
-type TabId = "overview" | "leads" | "contacts" | "listings" | "lease-listings" | "tasks" | "activity";
+type TabId = "overview" | "leads" | "contacts" | "listings" | "lease-listings" | "education" | "tasks" | "activity";
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "overview",       label: "Overview",       icon: "📊" },
@@ -26,6 +30,7 @@ const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "contacts",       label: "Contacts",       icon: "📇" },
   { id: "listings",       label: "Listings",       icon: "🏠" },
   { id: "lease-listings", label: "Lease Listings", icon: "🔑" },
+  { id: "education",      label: "Education",      icon: "🎓" },
   { id: "tasks",          label: "Tasks",          icon: "✓"  },
   { id: "activity",       label: "Activity",       icon: "📋" },
 ];
@@ -141,8 +146,51 @@ export function DashboardTabs({
   // Sync active tab with URL hash so the back button + deep links work
   const [active, setActive] = useState<TabId>("overview");
   const [leadsState, setLeadsState] = useState(leads);
+  const [listingsState, setListingsState] = useState(listings);
+  const [tasksState, setTasksState] = useState(tasks);
+  const [leaseCount, setLeaseCount] = useState(() =>
+    typeof window !== "undefined" ? loadLeaseListings().length : 0
+  );
+  const [educationCount, setEducationCount] = useState(0);
+  const [focusLeadId, setFocusLeadId] = useState<string | null>(null);
+  const [openNotesLeadId, setOpenNotesLeadId] = useState<string | null>(null);
   // Lift contacts state here so it survives tab switches
   const [contacts, setContacts] = useState<ContactWithLeads[]>(initialContacts);
+
+  useEffect(() => {
+    setLeaseCount(loadLeaseListings().length);
+    setEducationCount(
+      loadEducationClasses().filter((c) => effectiveStatus(c) === "upcoming").length
+    );
+  }, []);
+
+  const handleTasksChange = useCallback((next: Task[]) => {
+    setTasksState(next);
+  }, []);
+
+  const handleLeaseListingsChange = useCallback((next: LeaseListing[]) => {
+    setLeaseCount(next.length);
+  }, []);
+
+  const handleEducationCountChange = useCallback((count: number) => {
+    setEducationCount(count);
+  }, []);
+
+  async function refreshListings() {
+    const res = await fetch("/api/listings");
+    if (res.ok) {
+      const data = (await res.json()) as Listing[];
+      setListingsState(data);
+    }
+  }
+
+  const dueLeads = useMemo(
+    () =>
+      leadsState
+        .filter((l) => isContactDue(l.contact_by))
+        .sort((a, b) => (a.contact_by ?? "").localeCompare(b.contact_by ?? "")),
+    [leadsState]
+  );
 
   function handleLeadUpdated(updated: Lead) {
     setLeadsState((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
@@ -170,6 +218,15 @@ export function DashboardTabs({
 
   function handleLeadAdded(lead: Lead) {
     setLeadsState((prev) => [lead, ...prev]);
+  }
+
+  function handleReminderCleared(contactId: string) {
+    setContacts((prev) =>
+      prev.map((c) =>
+        c.id === contactId ? { ...c, reminder_at: null, reminder_note: null } : c
+      )
+    );
+    setAckVersion((v) => v + 1);
   }
   // Re-render when reminder acknowledgments change (stored in localStorage)
   const [, setAckVersion] = useState(0);
@@ -209,9 +266,10 @@ export function DashboardTabs({
   const counts: Partial<Record<TabId, number>> = {
     leads:          leadsState.length,
     contacts:       contacts.length,
-    listings:       listings.length,
-    "lease-listings": LEASE_LISTINGS.length,
-    tasks:          tasks.filter((t) => t.status !== "done").length,
+    listings:       listingsState.length,
+    "lease-listings": leaseCount,
+    education:      educationCount,
+    tasks:          tasksState.filter((t) => t.status !== "done").length,
     // activity count is fetched client-side; omit from badge here
   };
 
@@ -323,7 +381,23 @@ export function DashboardTabs({
         {/* ── Overview ─────────────────────────────── */}
         {active === "overview" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            <DashboardCards leads={leadsState} listings={listings} tasks={tasks} />
+            <ContactDueBanner
+              leads={dueLeads}
+              onFocusLead={(lead) => {
+                setFocusLeadId(lead.id);
+                switchTab("leads");
+              }}
+              onOpenNotes={(lead) => {
+                setOpenNotesLeadId(lead.id);
+                switchTab("leads");
+              }}
+            />
+            <DashboardCards
+              leads={leadsState}
+              listings={listingsState}
+              tasks={tasksState}
+              onNavigate={(tab) => switchTab(tab)}
+            />
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
               <div className="glass" style={{ padding: "1.25rem" }}>
@@ -333,7 +407,7 @@ export function DashboardTabs({
 
               <div className="glass" style={{ padding: "1.25rem" }}>
                 <h3 style={{ marginBottom: "1rem", fontSize: "1rem" }}>⬆ Import Listings</h3>
-                <ListingImport demoMode={demoMode} compact />
+                <ListingImport demoMode={demoMode} compact onImported={refreshListings} />
               </div>
 
               <div className="glass" style={{ padding: "1.25rem" }}>
@@ -344,7 +418,7 @@ export function DashboardTabs({
 
             {/* Quick-jump shortcuts */}
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              {(["leads","contacts","listings","lease-listings","tasks","activity"] as TabId[]).map((id) => {
+              {(["leads","contacts","listings","lease-listings","education","tasks","activity"] as TabId[]).map((id) => {
                 const tab = TABS.find((t) => t.id === id)!;
                 return (
                   <button
@@ -373,6 +447,10 @@ export function DashboardTabs({
             onLeadUpdated={handleLeadUpdated}
             onLeadAdded={handleLeadAdded}
             onLeadDeleted={handleLeadDeleted}
+            focusLeadId={focusLeadId}
+            onFocusLeadHandled={() => setFocusLeadId(null)}
+            openNotesLeadId={openNotesLeadId}
+            onOpenNotesHandled={() => setOpenNotesLeadId(null)}
             demoMode={demoMode}
           />
         )}
@@ -384,17 +462,29 @@ export function DashboardTabs({
 
         {/* ── Listings ─────────────────────────────── */}
         {active === "listings" && (
-          <ListingsGrid listings={listings} />
+          <ListingsGrid listings={listingsState} />
         )}
 
         {/* ── Lease Listings ───────────────────────── */}
         {active === "lease-listings" && (
-          <LeaseListingsPanel />
+          <LeaseListingsPanel onListingsChange={handleLeaseListingsChange} />
+        )}
+
+        {/* ── Education ────────────────────────────── */}
+        {active === "education" && (
+          <EducationPanel onCountChange={handleEducationCountChange} />
         )}
 
         {/* ── Tasks ────────────────────────────────── */}
         {active === "tasks" && (
-          <ProjectTasksPanel projects={projects} tasks={tasks} contacts={contacts} demoMode={demoMode} />
+          <ProjectTasksPanel
+            projects={projects}
+            tasks={tasksState}
+            contacts={contacts}
+            demoMode={demoMode}
+            onTasksChange={handleTasksChange}
+            onReminderCleared={handleReminderCleared}
+          />
         )}
 
         {/* ── Activity ─────────────────────────────── */}

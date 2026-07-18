@@ -34,6 +34,12 @@ function ContactCard({
   const [remAt, setRemAt] = useState(contact.reminder_at?.slice(0, 16) ?? "");
   const [remNote, setRemNote] = useState(contact.reminder_note ?? "");
   const [saving, setSaving] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRemAt(contact.reminder_at?.slice(0, 16) ?? "");
+    setRemNote(contact.reminder_note ?? "");
+  }, [contact.id, contact.reminder_at, contact.reminder_note]);
   const fullName = [contact.first_name, contact.last_name].filter(Boolean).join(" ");
   const address = [contact.address_street, contact.address_city, contact.address_region, contact.address_postal_code]
     .filter(Boolean).join(", ");
@@ -41,27 +47,63 @@ function ContactCard({
   const isOverdue = contact.reminder_at && new Date(contact.reminder_at) < new Date();
   const isDue = contact.reminder_at && !isOverdue && new Date(contact.reminder_at) <= new Date(Date.now() + 24 * 3600_000);
 
-  async function saveReminder() {
-    setSaving(true);
-    const res = await fetch(`/api/contacts/${contact.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reminder_at: remAt || null, reminder_note: remNote || null }),
-    });
-    if (res.ok) {
-      onReminderSaved(contact.id, remAt || null, remNote || null);
-      setShowReminder(false);
-    }
-    setSaving(false);
+  function reminderPayload(at: string, note: string) {
+    return {
+      reminder_at: at ? new Date(at).toISOString() : null,
+      reminder_note: note.trim() || null,
+    };
   }
 
-  function clearReminder() {
-    setRemAt(""); setRemNote("");
-    fetch(`/api/contacts/${contact.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reminder_at: null, reminder_note: null }),
-    }).then(() => onReminderSaved(contact.id, null, null));
+  const hasReminder = !!(contact.reminder_at || remAt);
+  const canSaveReminder = !!remAt || !!contact.reminder_at;
+
+  async function saveReminder() {
+    setSaving(true);
+    setReminderError(null);
+    try {
+      const res = await fetch(`/api/contacts/${contact.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reminderPayload(remAt, remNote)),
+      });
+      if (res.ok) {
+        const updated = (await res.json()) as Contact;
+        onReminderSaved(contact.id, updated.reminder_at, updated.reminder_note);
+        setShowReminder(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setReminderError((err as { error?: string }).error ?? "Could not save reminder.");
+      }
+    } catch {
+      setReminderError("Could not save reminder.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function clearReminder() {
+    setSaving(true);
+    setReminderError(null);
+    try {
+      const res = await fetch(`/api/contacts/${contact.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reminder_at: null, reminder_note: null }),
+      });
+      if (res.ok) {
+        onReminderSaved(contact.id, null, null);
+        setRemAt("");
+        setRemNote("");
+        setShowReminder(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setReminderError((err as { error?: string }).error ?? "Could not clear reminder.");
+      }
+    } catch {
+      setReminderError("Could not clear reminder.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -173,17 +215,34 @@ function ContactCard({
             value={remNote}
             onChange={(e) => setRemNote(e.target.value)}
           />
-          <div style={{ display: "flex", gap: "0.4rem" }}>
-            <button type="button" className="btn btn-primary" style={{ fontSize: "0.8rem" }} onClick={saveReminder} disabled={saving || !remAt}>
-              {saving ? "Saving…" : "Save"}
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ fontSize: "0.8rem" }}
+              onClick={saveReminder}
+              disabled={saving || !canSaveReminder}
+            >
+              {saving ? "Saving…" : remAt ? "Save" : "Save (clear reminder)"}
             </button>
-            {contact.reminder_at && (
-              <button type="button" className="btn" style={{ fontSize: "0.8rem", color: "#e53e3e" }} onClick={clearReminder}>
+            {hasReminder && (
+              <button
+                type="button"
+                className="btn"
+                style={{ fontSize: "0.8rem", color: "#e53e3e" }}
+                onClick={clearReminder}
+                disabled={saving}
+              >
                 Clear
               </button>
             )}
-            <button type="button" className="btn" style={{ fontSize: "0.8rem" }} onClick={() => setShowReminder(false)}>Cancel</button>
+            <button type="button" className="btn" style={{ fontSize: "0.8rem" }} onClick={() => setShowReminder(false)} disabled={saving}>
+              Cancel
+            </button>
           </div>
+          {reminderError && (
+            <p style={{ margin: 0, fontSize: "0.78rem", color: "#fc8181" }}>{reminderError}</p>
+          )}
         </div>
       )}
 
@@ -490,6 +549,18 @@ function ContactForm({
               onChange={(e) => setForm((f) => ({ ...f, reminder_note: e.target.value }))}
             />
           </div>
+          {(form.reminder_at || initial?.reminder_at) && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <button
+                type="button"
+                className="btn"
+                style={{ fontSize: "0.8rem", color: "#e53e3e" }}
+                onClick={() => setForm((f) => ({ ...f, reminder_at: null, reminder_note: null }))}
+              >
+                Clear reminder
+              </button>
+            </div>
+          )}
         </div>
 
         {section("Notes")}
@@ -614,10 +685,16 @@ export function ContactsPanel({
 
   async function handleEdit(data: Partial<Contact>) {
     if (!editing) return;
+    const payload = { ...data };
+    if ("reminder_at" in payload) {
+      const at = payload.reminder_at as string | null;
+      payload.reminder_at = at ? new Date(at).toISOString() : null;
+      if (!at) payload.reminder_note = null;
+    }
     const res = await fetch(`/api/contacts/${editing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
       const updated = await res.json();

@@ -8,7 +8,15 @@ Spacious Townhouse,456 Oak Ave,$3200 / month,active,townhome,town-002
 Green Acres Plot,789 Country Rd,$150000,active,land,land-003
 Oak Street Rental,321 Oak St,$1800 / month,active,rental,rental-004`;
 
-export function ListingImport({ demoMode = false, compact = false }: { demoMode?: boolean; compact?: boolean }) {
+export function ListingImport({
+  demoMode = false,
+  compact = false,
+  onImported,
+}: {
+  demoMode?: boolean;
+  compact?: boolean;
+  onImported?: () => void | Promise<void>;
+}) {
   const [csv, setCsv] = useState(SAMPLE_CSV);
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +40,7 @@ export function ListingImport({ demoMode = false, compact = false }: { demoMode?
           `Imported ${data.imported} listings` +
             (data.errors?.length ? ` (${data.errors.length} errors)` : "")
         );
-        window.location.reload();
+        await onImported?.();
       }
     } catch {
       setStatus("Import failed");
