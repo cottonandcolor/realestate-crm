@@ -5,6 +5,7 @@ import {
   ZIPFORM_TRANSACTION_LISTINGS,
   mergeWebsiteListings,
 } from "@/lib/websiteListings";
+import zipFormLeases from "../../../public/data/zipform-leases.json";
 
 function listing(overrides: Partial<Listing>): Listing {
   return {
@@ -66,6 +67,9 @@ describe("website listings", () => {
       image_url: expect.stringContaining("/132-fort-clark/"),
     });
     expect(fortClark?.metadata.representation).toBe("Represented Seller");
+    expect(
+      zipFormLeases.rows.find((item) => item.ref_number === "119080917")?.leaseEnd,
+    ).toBe("2026-09-30");
     expect(aireLibre).toMatchObject({
       status: "active",
       price_display: "$3,500/mo",
