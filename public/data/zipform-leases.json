@@ -112,17 +112,15 @@
       "ref_number": "111156879",
       "address": "9540 Aire Libre Dr",
       "city": "Austin",
-      "leaseStart": "2025-01-15",
-      "leaseEnd": "2026-01-31",
+      "leaseStart": "",
+      "leaseEnd": "",
       "contacts": [
         "Suma Aithal",
-        "Prabhakara Aithal",
-        "Rana Gupta",
-        "Seema Gupta"
+        "Prabhakara Aithal"
       ],
       "type": "landlord",
-      "status": "Closed",
-      "monthly_rent": "$3,300.00",
+      "status": "Active",
+      "monthly_rent": "$3,500.00",
       "transaction_name": "9540 Aire Libre Dr",
       "transaction_type": "Lease-Listing, Residential"
     },
@@ -558,7 +556,7 @@
         "Ameet Ubhayaker"
       ],
       "type": "landlord",
-      "status": "Active",
+      "status": "Closed",
       "monthly_rent": "",
       "transaction_name": "132 Fort Clark Springs",
       "transaction_type": "Lease-Listing, Residential"

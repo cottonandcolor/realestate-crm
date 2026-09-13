@@ -52,6 +52,27 @@ describe("website listings", () => {
     ).toHaveLength(41);
   });
 
+  it("reflects the latest September listing status changes", () => {
+    const fortClark = ZIPFORM_TRANSACTION_LISTINGS.find(
+      (item) => item.external_id === "119080917",
+    );
+    const aireLibre = ZIPFORM_TRANSACTION_LISTINGS.find(
+      (item) => item.external_id === "111156879",
+    );
+
+    expect(fortClark).toMatchObject({
+      status: "sold",
+      price_display: "Leased",
+      image_url: expect.stringContaining("/132-fort-clark/"),
+    });
+    expect(fortClark?.metadata.representation).toBe("Represented Seller");
+    expect(aireLibre).toMatchObject({
+      status: "active",
+      price_display: "$3,500/mo",
+      image_url: expect.stringContaining("/9540-aire-libre/"),
+    });
+  });
+
   it("removes fake and manual lease records while retaining real manual listings", () => {
     const merged = mergeWebsiteListings([
       listing({ external_source: "seed", external_id: "demo-condo-1" }),
