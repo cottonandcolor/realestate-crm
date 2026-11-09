@@ -28,15 +28,60 @@ function listing(overrides: Partial<Listing>): Listing {
 }
 
 describe("website listings", () => {
-  it("contains the five active properties from the website", () => {
-    expect(WEBSITE_LISTINGS).toHaveLength(5);
+  it("mirrors the active and newly leased website cards", () => {
     expect(WEBSITE_LISTINGS.map((item) => item.title)).toEqual([
       "806 Clearwell St",
       "County Road 315",
       "7206 Flagship Park Dr",
       "900 CR 406",
-      "821 W New Hope Unit 108",
+      "1017 Plano Ln",
+      "16700 Fresno Cv",
+      "112 New Hampton Way",
     ]);
+
+    expect(
+      WEBSITE_LISTINGS.find((item) => item.external_id === "9866234"),
+    ).toMatchObject({
+      status: "active",
+      price_display: "$595,999",
+      property_type: "sfh",
+    });
+
+    expect(
+      WEBSITE_LISTINGS.find((item) => item.external_id === "6182724"),
+    ).toMatchObject({
+      status: "active",
+      price_display: "$3,300/mo",
+      property_type: "lease",
+      image_url: expect.stringContaining("/1017-plano/"),
+    });
+
+    expect(
+      WEBSITE_LISTINGS.find((item) => item.external_id === "4498151"),
+    ).toMatchObject({
+      status: "sold",
+      price_display: "Leased",
+      property_type: "lease",
+      image_url: expect.stringContaining("/16700-fresno/"),
+    });
+
+    expect(
+      WEBSITE_LISTINGS.find((item) => item.external_id === "8970956"),
+    ).toMatchObject({
+      status: "sold",
+      price_display: "Leased",
+      property_type: "lease",
+      image_url: expect.stringContaining("/112-new-hampton/"),
+    });
+
+    expect(
+      WEBSITE_LISTINGS.some(
+        (item) =>
+          item.external_id === "R648688" ||
+          /new hope/i.test(item.title) ||
+          /new hope/i.test(item.address ?? ""),
+      ),
+    ).toBe(false);
   });
 
   it("contains all Active and Closed ZipForm transactions", () => {
